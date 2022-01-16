@@ -338,7 +338,9 @@ abstract class Form extends Html_Object
             }
             $inputs .= $this->get_input_row("hidden", $name, $data[$key_names[$i]]);
         }
-        $inputs .= $this->get_input_row("hidden", "identifier", $identifier);
+        if ($identifier) {
+            $inputs .= $this->get_input_row("hidden", "identifier", $identifier);
+        }
         return $inputs;
     }
 }
@@ -487,7 +489,6 @@ class Multichoice_Btn_Form extends Form
             $data["table_name"] = $table_name;
             $form_btn = new Btn_Form($table_name, "f_m_btn_submit", $link, $data);
             $contents .= $form_btn->get_html();
-            $contents .= "<br";
         }
         return $contents;
     }
