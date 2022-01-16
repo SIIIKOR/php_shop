@@ -288,7 +288,7 @@ abstract class Html_Object
         return $this->html_code;
     }
 
-    protected function create()
+    function create()
     {
         // Method that creates html object.
         print($this->html_code);
