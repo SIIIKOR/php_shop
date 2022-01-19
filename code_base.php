@@ -137,8 +137,12 @@ class Db_Loader
         foreach ($data as $row) {
             $val = $row["pg_get_constraintdef"];
             preg_match("/\((.*)\)/", $val, $matches);
-            $val = explode(", ", $matches[1]);
-            $out[$row["table_name"]] = $val;
+            $pk_list = explode(", ", $matches[1]);
+            $pk_set = [];
+            foreach ($pk_list as $el) {
+                $pk_set[$el] = TRUE;
+            }
+            $out[$row["table_name"]] = $pk_set;
         }
         return $out;
     }
@@ -162,7 +166,7 @@ class Db_Loader
                   FROM $table_name
                   WHERE {$condition};";
         $data = $this->run_query($query);
-        return $data;
+        return $data[0];
     }
 
     function update_table_row($table_name, $condition, $values)
@@ -213,31 +217,49 @@ class Data_Handler
         return $this->post_data["page_num"];
     }
 
-    function get_primary_key_amount()
+    function get_colective_data_amount($id)
     {
-        return $this->post_data["pk_amount"];
+        return $this->post_data["{$id}_amount"];
     }
 
     function get_identifier() {
-        return $this->post_data["identifier"];
+        return $this->post_data["id"];
     }
 
-    private function get_primary_keys_start($predef_par_amount)
-    {
-        $pk_amount = $this->get_primary_key_amount();
-        return count($this->post_data) - ($pk_amount + $predef_par_amount) - 1;
+    function get_colective_data_end_index($predef_par_amount, $id) {
+        $cd_amount = $this->get_colective_data_amount($id);
+        return count($this->post_data) -$predef_par_amount - $cd_amount -1;
     }
 
-    function get_primary_keys($predef_par_amount)
+    function get_colective_data($predef_par_amount, $id = NULL)
     {
-        $pk_start = $this->get_primary_keys_start($predef_par_amount);
-        return array_slice($this->post_data, $pk_start, -$predef_par_amount - 1);
+        $cd_end_index = -$predef_par_amount -1;
+        if ($id) {
+            $cd_end_index = $this->get_colective_data_end_index($predef_par_amount, $id);
+        }
+        return array_slice($this->post_data, 0, $cd_end_index);
+    }
+}
+
+class Data_Preparer
+{
+    function tag_data($tag, $data)
+    {
+        return [$tag => $data];
     }
 
-    function get_user_input($predef_par_amount)
-    {
-        $pk_start = $this->get_primary_keys_start($predef_par_amount);
-        return array_slice($this->post_data, 0, $pk_start);
+    function get_condition($primary_keys) {
+        $cond = "";
+        $i = 0;
+        foreach($primary_keys as $key => $value) {
+            if ($i == 0) {
+                $cond .= "$key = '$value' ";
+            } else {
+                $cond .= " and $key = '$value'";
+            }
+            $i++;
+        }
+        return $cond;
     }
 
     private function is_valid($user_input)
@@ -262,19 +284,20 @@ class Data_Handler
 
 abstract class Html_Object
 {
-    protected $html_code;
+    protected $class_name;
+    protected $id_name;
 
     abstract protected function get_contents();
 
-    protected function submerge_in_div($contents, $class_name, $id_name)
+    protected function submerge_in_div($contents)
     {
         /*
             Method that submerges contents in html div with given class name
             and id.
         */
-        $html_code = "<div class=\"{$class_name}\"";
-        if ($id_name) {
-            $html_code .= " id=\"{$id_name}\">";
+        $html_code = "<div class=\"{$this->class_name}\"";
+        if ($this->id_name) {
+            $html_code .= " id=\"{$this->id_name}\">";
         } else {
             $html_code .= ">";
         }
@@ -285,25 +308,58 @@ abstract class Html_Object
     protected function get_html()
     {
         // Method that returns html code.
-        return $this->html_code;
+        $html_code = $this->get_contents();
+        if ($this->class_name or $this->id_name) {
+            $html_code = $this->submerge_in_div($html_code);
+        }
+        return $html_code;
     }
 
     function create()
     {
         // Method that creates html object.
-        print($this->html_code);
+        print($this->get_html());
     }
 }
 
 abstract class Form extends Html_Object
 {
-    protected function sumberge_in_form($contents, $link, $method = "post")
+    protected $link;
+    protected $data;
+    protected $class_name;
+    protected $id_name;
+
+    function __construct($data, $link, $class_name = Null, $id_name = NULL)
+    {
+        $this->data = $data;
+        $this->link = $link;
+        $this->class_name = $class_name;
+        $this->id_name = $id_name;
+    }
+
+    protected function modify_data($key, $value) {
+        $this->data[$key] = $value;
+    }
+
+    protected function submerge_in_form($contents, $link, $method = "post")
     {
         /*
             Method that submerges contents in form code block.
             Defines where form will be send and what method will be used.
          */
         return "<form action=\"{$link}\" method=\"{$method}\">{$contents}</form>";
+    }
+
+    protected function submerge_logic($contents)
+    {
+        $html_code = $contents;
+        if ($this->link) {
+            $html_code = $this->submerge_in_form($html_code, $this->link);
+        }
+        if ($this->class_name or $this->id_name) {
+            $html_code = $this->submerge_in_div($html_code, $this->class_name, $this->id_name);
+        }
+        return $html_code;
     }
 
     protected function get_input_row($type, $name, $value = NULL, $id = NULL, $req = FALSE)
@@ -326,71 +382,47 @@ abstract class Form extends Html_Object
         return $input;
     }
 
-    protected function add_hidden_data($data, $identifier = NULL)
+    protected function add_hidden_data()
     {
         $inputs = "";
-        $key_names = array_keys($data);
-        $pk_amount = $data["pk_amount"];
-        for ($i = 0; $i < count($data); $i++) {
-            $name = $key_names[$i];
-            if ($identifier and $i < $pk_amount) {
-                $name = "{$identifier}_{$key_names[$i]}";
-            }
-            $inputs .= $this->get_input_row("hidden", $name, $data[$key_names[$i]]);
-        }
-        if ($identifier) {
-            $inputs .= $this->get_input_row("hidden", "identifier", $identifier);
+        foreach ($this->data as $name=>$value) {
+            $inputs .= $this->get_input_row("hidden", $name, $value);
         }
         return $inputs;
+    }
+
+    function get_html() {
+        $contents = $this->get_contents();
+        $html_code = $this->submerge_logic($contents);
+        return $html_code;
+    }
+
+    function create() {
+        print($this->get_html());
     }
 }
 
 class Btn_Form extends Form
 {
-    private function construct_logic($btn_text, $btn_name, $link, $data,
-                                     $class_name, $id_name)
-    {
-        $this->html_code = $this->get_contents($btn_text, $btn_name, $data);
-        if ($link) {
-            $this->html_code = $this->sumberge_in_form($this->html_code, $link);
-        }
-        if ($class_name or $id_name) {
-            $this->html_code = $this->submerge_in_div($this->html_code, $class_name, $id_name);
-        }
-    }
+    private $btn_text;
+    private $btn_name;
 
     function __construct($btn_text = NULL, $btn_name = "f_btn_submit",
-                         $link = NULL, $data = NULL, 
+                         $data = NULL, $link = NULL, 
                          $class_name = NULL, $id_name = NULL)
     {
-        if ($btn_text) {
-            $this->construct_logic($btn_text, $btn_name, $link, $data,
-                                   $class_name, $id_name);
-        }
-    }
-
-    function construct_from_array($params_array)
-    {
-        $btn_text = $params_array[0];
-        $btn_name = $params_array[1];
-        $link = $params_array[2];
-        $data = $params_array[3];
-        $class_name = $params_array[4];
-        $id_name = $params_array[5];
-        $this->construct_logic($btn_text, $btn_name, $link, $data,
-                                   $class_name, $id_name);
+        $this->btn_text = $btn_text;
+        $this->btn_name = $btn_name;
+        $this->data = $data;
+        $this->link = $link;
+        $this->class_name = $class_name;
+        $this->id_name = $id_name;
     }
 
     protected function get_contents()
     {
-        $arg_list = func_get_args();
-        $btn_text = $arg_list[0];
-        $btn_name = $arg_list[1];
-        $data = $arg_list[2];
-        if ($data) {
-            $contents = $this->add_hidden_data($data);
-        }
-        $contents .= $this->get_input_row("submit", $btn_name, $btn_text);
+        $contents = $this->add_hidden_data();
+        $contents .= $this->get_input_row("submit", $this->btn_name, $this->btn_text);
         return $contents;
     }
 }
@@ -405,32 +437,16 @@ abstract class Multichoice_Form extends Form
 
 class Text_Form extends Multichoice_Form
 {
-
-    function __construct($link, $data, $btn_text = "Submit",
-                         $class_name = NULL, $id_name = NULL)
-    {
-        $contents = $this->get_contents($data, $btn_text);
-        $this->html_code = $this->sumberge_in_form($contents, $link);
-        if ($class_name or $id_name) {
-            $this->html_code = $this->submerge_in_div($this->html_code, $class_name, $id_name);
-        }
-    }
-
     protected function get_contents()
     {
-        $arg_list = func_get_args();
-        $data = $arg_list[0];
-        $btn_text = $arg_list[1];
-
         $contents = "";
-        foreach ($data as $k => $v) {
+        foreach ($this->data[0] as $k => $v) {
             $contents .= $this->get_label_row($k, $k);
             $contents .= "<br>";
             $contents .= $this->get_input_row("text", $k, $v, $k, TRUE);
             $contents .= "<br>";
         }
-        $contents .= $this->add_hidden_data($data, "pk");
-        $btn = new Btn_Form($btn_text, "f_t_btn_submit", NULL, NULL, "f_t_btn_submit");
+        $btn = new Btn_Form("Submit", "f_t_btn_submit", $this->data[1], NULL, "f_t_btn_submit");
         $contents .= $btn->get_html();
         return $contents;
     }
@@ -438,29 +454,15 @@ class Text_Form extends Multichoice_Form
 
 class Radio_Form extends Multichoice_Form
 {
-    function __construct($link, $data, $btn_text = "Submit", $class_name = NULL, $id_name = NULL)
-    {
-        $contents = $this->get_contents($data, $btn_text);
-        $this->html_code = $this->sumberge_in_form($contents, $link);
-        if ($class_name or $id_name) {
-            $this->html_code = $this->submerge_in_div($this->html_code, $class_name, $id_name);
-        }
-    }
-
     protected function get_contents()
     {
-        $arg_list = func_get_args();
-        $data = $arg_list[0];
-        $btn_text = $arg_list[1];
-
         $contents = "";
-        foreach ($data as $k => $v) {
+        foreach ($this->data[0] as $k => $v) {
             $contents .= $this->get_input_row("text", $k, $v, $k, TRUE);
             $contents .= $this->get_label_row($k, $k);
             $contents .= "<br>";
         }
-        $contents .= $this->add_hidden_data($data, "pk");
-        $btn = new Btn_Form($btn_text, "f_r_btn_submit", NULL, NULL, "f_r_btn_submit");
+        $btn = new Btn_Form("Submit", "f_r_btn_submit", $this->data[1], NULL, "f_r_btn_submit");
         $contents .= $btn->get_html();
         return $contents;
     }
@@ -468,26 +470,14 @@ class Radio_Form extends Multichoice_Form
 
 class Multichoice_Btn_Form extends Form
 {
-    function __construct($table_names, $link, $class_name, $id_name = NULL)
-    {
-        $contents = $this->get_contents($table_names, $link);
-        $this->html_code = $this->sumberge_in_form($contents, $link);
-        if ($class_name or $id_name) {
-            $this->html_code = $this->submerge_in_div($this->html_code, $class_name, $id_name);
-        }
-    }
-
     protected function get_contents()
     {
-        $arg_list = func_get_args();
-        $table_names = $arg_list[0];
-        $link = $arg_list[1];
-
+        // Suported input type array[$data_name=>array[values...]]
         $contents = "";
-        foreach ($table_names as $table_name) {
-            $data = [];
-            $data["table_name"] = $table_name;
-            $form_btn = new Btn_Form($table_name, "f_m_btn_submit", $link, $data);
+        $key_name = array_keys($this->data)[0];
+        foreach ($this->data[$key_name] as $table_name) {
+            $data = [$key_name => $table_name];
+            $form_btn = new Btn_Form($table_name, "f_m_btn_submit", $data, $this->link);
             $contents .= $form_btn->get_html();
         }
         return $contents;
@@ -496,96 +486,112 @@ class Multichoice_Btn_Form extends Form
 
 class Table extends Html_Object
 {
-    function __construct($data, $col_names, $additional_data = NULL,
-                         $class_name = "table", $id_name = NULL)
+    private $table_data;
+    private $col_names;
+    private $page_num;
+    private $primary_keys;
+    private $link;
+
+    function __construct($table_data, $col_names, $primary_keys, $table_name, $page_num, $link="update_table.php", $class_name = "table", $id_name = NULL)
     {
-        $contents = $this->get_contents($data, $col_names, $additional_data);
-        $this->html_code = $this->submerge_in_div($contents, $class_name, $id_name);
+        $this->table_data = $table_data;
+        $this->col_names = $col_names;
+        $this->page_num = $page_num;
+        $this->table_name = $table_name;
+        $this->primary_keys = $primary_keys[$table_name];
+        $this->class_name = $class_name;
+        $this->id_name = $id_name;
+        $this->link = $link;
     }
 
-    private function get_table_row($data, $additional_data = NULL, $type = "td")
+    private function get_table_row($data_row, $type = "td")
     {
-        $class_name = "data_cell";
-        if (!$type == "td") {
+        if ($type == "td") {
+            $inpt_class_name = "data_cell";
+        } else {
             $type = "th";
-            $class_name = "col_name";
+            $inpt_class_name = "col_name";
         }
         $cells = "";
-        foreach (array_values($data) as $value) {
-            $cells .= "<{$type} class=\"{$class_name}\">{$value}</{$type}>";
+        foreach ($data_row as $key => $value) {
+            $cells .= "<{$type} class=\"{$inpt_class_name}\">{$value}</{$type}>";
+            if ($type == "td") {
+                if (array_key_exists($key, $this->primary_keys)) {
+                    $post_data[$key] = $value;
+                }
+            }
         }
-        foreach (array_values($additional_data) as $addi_value) {
-            $form_btn = new Btn_Form();
-            $form_btn->construct_from_array($addi_value);
-            $cells .= "<{$type} class=\"{$class_name}\">{$form_btn->get_html()}</{$type}>";
+        if ($type == "td") {
+            $post_data["table_name"] = $this->table_name;
+            $post_data["page_num"] = $this->page_num;
+            $form_btn = new Btn_Form("X", "f_btn_action", $post_data, $this->link);
+            $cells .= "<{$type} class=\"actions\">{$form_btn->get_html()}</{$type}>";
         }
         return $cells;
     }
 
-    private function get_col_names_row($col_names, $additional_data)
+    private function get_col_names_row()
     {
-        $cells = $this->get_table_row($col_names, array_keys($additional_data), "th");
+        $cells = $this->get_table_row($this->col_names, "th");
         return "<tr>{$cells}</tr>";
     }
 
-    private function get_table_contents($data, $additional_data)
+    private function get_table_contents()
     {
         $contents = "";
-        foreach ($data as $data_row) {
-            $cells = $this->get_table_row($data_row, array_values($additional_data));
+        foreach ($this->table_data as $data_row) {
+            $cells = $this->get_table_row($data_row);
             $contents .= "<tr>{$cells}</tr>";
         }
+        return $contents;
     }
 
     protected function get_contents()
     {
-        $arg_list = func_get_args();
-        $data = $arg_list[0];
-        $col_names = $arg_list[1];
-        $additional_data = $arg_list[2];
-
-        $table = $this->get_col_names_row($col_names, $additional_data);
-        $table .= $this->get_table_contents($data, $additional_data);
-        return $table;
+        $table = $this->get_col_names_row();
+        $table .= $this->get_table_contents();
+        return "<table>{$table}</table>";
     }
 }
 
 class Pagination extends Html_Object
 {
+    private $table_name;
+    private $page_num;
+    private $records_per_page;
+    private $total_row_count;
+    private $link;
+
     function __construct($table_name, $page_num, $records_per_page, $total_row_count, 
                          $link, $class_name = "comb_pagination", $id_name = NULL)
     {
-        $this->html_code = $this->get_contents($table_name, $page_num, $records_per_page, $total_row_count, $link);
-        if ($class_name or $id_name) {
-            $this->html_code = $this->submerge_in_div($this->html_code, $class_name, $id_name);
-        }
+        $this->table_name = $table_name;
+        $this->page_num = $page_num;
+        $this->records_per_page = $records_per_page;
+        $this->total_row_count = $total_row_count;
+        $this->link = $link;
+        $this->class_name = $class_name;
+        $this->id_name = $id_name;
     }
 
     protected function get_contents()
     {
-        $arg_list = func_get_args();
-        $table_name = $arg_list[0];
-        $page_num = $arg_list[1];
-        $records_per_page = $arg_list[2];
-        $total_row_count = $arg_list[3];
-        $link = $arg_list[4];
-
-        $data = [];
-        $data["table_name"] = $table_name;
+        $data = ["table_name"=>$this->table_name];
+        $data["table_name"] = $this->table_name;
 
         $pagination = "";
-        if ($page_num > 0) {
+        if ($this->page_num > 0) {
             // Creates pagination that allows user to go left.
-            $new_page_num = $page_num - 1;
+            $new_page_num = $this->page_num - 1;
             $data["page_num"] = $new_page_num;
-            $pagi_btn = new Btn_Form("left", "f_p_l_btn", $link, $data);
+            $pagi_btn = new Btn_Form("left", "form_pagi_left_btn", $data, $this->link);
             $pagination .= $pagi_btn->get_html();
             // if there should exists right button.
-          } if (($page_num+1)*$records_per_page<$total_row_count) {
+          } if (($this->page_num+1)*$this->records_per_page<$this->total_row_count) {
               // Creates pagination that allows user to go right.
-            $new_page_num = $page_num + 1;
+            $new_page_num = $this->page_num + 1;
             $data["page_num"] = $new_page_num;
-            $pagi_btn = new Btn_Form("left", "f_p_l_btn", $link, $data);
+            $pagi_btn = new Btn_Form("right", "form_pagi_right_btn", $data, $this->link);
             $pagination .= $pagi_btn->get_html();
           }
         return $pagination;
