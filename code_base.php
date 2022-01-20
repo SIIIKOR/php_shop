@@ -169,20 +169,36 @@ class Db_Loader
         return $data[0];
     }
 
+    function insert_table_row($table_name, $values) {
+        $query = "INSERT INTO {$table_name}
+                  VALUES {$values};";
+        $this->run_query($query);
+    }
+
     function update_table_row($table_name, $condition, $values)
     {
         $query = "UPDATE {$table_name}
                   SET {$values}
                   WHERE {$condition};";
-        $data = $this->run_query($query);
-        return $data;
+        $this->run_query($query);
     }
 
     function delete_table_row($table_name, $condition)
     {
         $query = "DELETE FROM $table_name
-            WHERE {$condition};";
-        $data = $this->run_query($query);
+                  WHERE {$condition};";
+        $this->run_query($query);
+    }
+
+    function perform_action($action, $table_name, $condition=NULL, 
+                            $update_values=NULL, $insert_values=NULL) {
+        if ($action == "update") {
+            $this->update_table_row($table_name, $condition, $update_values);
+        } elseif ($action == "delete") {
+            $this->delete_table_row($table_name, $condition);
+        } elseif ($action == "add") {
+            $this->insert_table_row($table_name, $insert_values);
+        }
     }
 
     function test_conn()
@@ -201,10 +217,14 @@ class Db_Loader
 class Data_Handler
 {
     private $post_data;
+    private $predef_par_amount;
+    private $id;
 
-    function __construct($post_data)
+    function __construct($post_data, $predef_par_amount=2)
     {
         $this->post_data = $post_data;
+        $this->predef_par_amount = $predef_par_amount;
+        $this->id = $this->get_identifier();
     }
 
     function get_table_name()
@@ -217,27 +237,57 @@ class Data_Handler
         return $this->post_data["page_num"];
     }
 
-    function get_colective_data_amount($id)
+    function get_mode() {
+        return $this->post_data["mode"];
+    }
+
+    function get_identified_data_amount()
     {
-        return $this->post_data["{$id}_amount"];
+        return $this->post_data["{$this->id}_amount"];
     }
 
     function get_identifier() {
-        return $this->post_data["id"];
+        if (isset($this->post_data["id"])) {
+            $this->predef_par_amount += 2;
+            return $this->post_data["id"];
+        }
+        return NULL;
     }
 
-    function get_colective_data_end_index($predef_par_amount, $id) {
-        $cd_amount = $this->get_colective_data_amount($id);
-        return count($this->post_data) -$predef_par_amount - $cd_amount -1;
+    function get_colective_data_end_index() {
+        $cd_amount = $this->get_identified_data_amount();
+        return count($this->post_data) -$this->predef_par_amount - $cd_amount -1;
     }
 
-    function get_colective_data($predef_par_amount, $id = NULL)
+    function get_colective_data()
     {
-        $cd_end_index = -$predef_par_amount -1;
-        if ($id) {
-            $cd_end_index = $this->get_colective_data_end_index($predef_par_amount, $id);
+        $cd_end_index = -$this->predef_par_amount -1;
+        if ($this->id) {
+            $cd_end_index = $this->get_colective_data_end_index($this->predef_par_amount, $this->id);
         }
         return array_slice($this->post_data, 0, $cd_end_index);
+    }
+
+    function get_identified_data()
+    {
+        $identified_data_start = -$this->predef_par_amount - $this->get_identified_data_amount()-1;
+        $identified_data = array_slice($this->post_data, $identified_data_start, -$this->predef_par_amount-1);
+        $unidentified_data = [];
+        foreach ($identified_data as $k=>$v) {
+            $unidentified_data[explode("_", $k)[1]] = $v;
+        }
+        return $unidentified_data;
+    }
+
+    function handle_form() {
+        if (isset($this->post_data["f_u_btn_submit"])) {
+            $action = "update";
+        } elseif (isset($this->post_data["f_d_btn_submit"])) {
+            $action = "delete";
+        } elseif (isset($this->post_data["f_a_btn_submit"])) {
+            $action = "add";
+        }
+        return [$action, $this->get_colective_data(), $this->get_identified_data()];
     }
 }
 
@@ -248,16 +298,41 @@ class Data_Preparer
         return [$tag => $data];
     }
 
-    function get_condition($primary_keys) {
+    function identify_data($data, $id) {
+        $new_data = [];
+        foreach ($data as $k=>$v) {
+            $new_data["{$id}_{$k}"] = $v;
+        }
+        $new_data["id"] = $id;
+        $new_data["{$id}_amount"] = count($data);
+        return $new_data;
+    }
+
+    function get_query_params($val_arr, $mode = "pk") {
         $cond = "";
         $i = 0;
-        foreach($primary_keys as $key => $value) {
+        foreach($val_arr as $key => $value) {
             if ($i == 0) {
-                $cond .= "$key = '$value' ";
+                if ($mode == "pk") {
+                    $cond .= "$key = '$value' ";
+                } elseif ($mode == "up") {
+                    $cond .= "$key = '$value'";
+                } elseif ($mode == "in") {
+                    $cond .= "('$value'";
+                }
             } else {
-                $cond .= " and $key = '$value'";
+                if ($mode == "pk") {
+                    $cond .= " and $key = '$value'";
+                } elseif ($mode == "up") {
+                    $cond .= ", $key = '$value'";
+                } elseif ($mode == "in") {
+                    $cond .= ", '$value'";
+                }
             }
             $i++;
+        }
+        if ($mode == "in") {
+            $cond .= ")";
         }
         return $cond;
     }
@@ -437,16 +512,36 @@ abstract class Multichoice_Form extends Form
 
 class Text_Form extends Multichoice_Form
 {
+    private $preset_data;
+    private $btn_name;
+
+    function __construct($data, $link, $preset_data=TRUE, 
+     $btn_name="f_t_btn_submit", $class_name = NULL, $id_name = NULL)
+    {
+        $this->data = $data;
+        $this->link = $link;
+        $this->preset_data = $preset_data;
+        $this->btn_name = $btn_name;
+        $this->class_name = $class_name;
+        $this->id_name = $id_name;
+    }
+
     protected function get_contents()
     {
         $contents = "";
         foreach ($this->data[0] as $k => $v) {
-            $contents .= $this->get_label_row($k, $k);
+            $table_name = $k;
+            $value = $v;
+            if (!$this->preset_data) {
+                $table_name = $v;
+                $value = NULL;
+            }
+            $contents .= $this->get_label_row($table_name, $table_name);
             $contents .= "<br>";
-            $contents .= $this->get_input_row("text", $k, $v, $k, TRUE);
+            $contents .= $this->get_input_row("text", $table_name, $value, $table_name, TRUE);
             $contents .= "<br>";
         }
-        $btn = new Btn_Form("Submit", "f_t_btn_submit", $this->data[1], NULL, "f_t_btn_submit");
+        $btn = new Btn_Form("Submit", $this->btn_name, $this->data[1], NULL, $this->btn_name);
         $contents .= $btn->get_html();
         return $contents;
     }
@@ -597,3 +692,24 @@ class Pagination extends Html_Object
         return $pagination;
     }
 }
+
+function handle_crud_action($loader, $handler, $preparer, $table_name) {
+    $action_arr = $handler->handle_form();
+    $action = $action_arr[0];
+    $input_data = $action_arr[1];
+    $cond_values = $action_arr[2];
+
+    if ($action == "update") {
+        $condition = $preparer->get_query_params($cond_values, "pk");
+        $update_values = $preparer->get_query_params($input_data, "up");
+        $loader->perform_action($action, $table_name, $condition, $update_values);
+    } elseif ($action == "delete") {
+        $condition = $preparer->get_query_params($input_data, "pk");
+        $loader->perform_action($action, $table_name, $condition);
+    } else {  // insert
+        $insert_values = $preparer->get_query_params($input_data, "in");
+        $loader->perform_action($action, $table_name, NULL, NULL, $insert_values);
+    }
+}
+
+?>
