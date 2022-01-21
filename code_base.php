@@ -698,17 +698,27 @@ function handle_crud_action($loader, $handler, $preparer, $table_name) {
     $action = $action_arr[0];
     $input_data = $action_arr[1];
     $cond_values = $action_arr[2];
-
-    if ($action == "update") {
-        $condition = $preparer->get_query_params($cond_values, "pk");
-        $update_values = $preparer->get_query_params($input_data, "up");
-        $loader->perform_action($action, $table_name, $condition, $update_values);
-    } elseif ($action == "delete") {
-        $condition = $preparer->get_query_params($input_data, "pk");
-        $loader->perform_action($action, $table_name, $condition);
-    } else {  // insert
-        $insert_values = $preparer->get_query_params($input_data, "in");
-        $loader->perform_action($action, $table_name, NULL, NULL, $insert_values);
+    if ($action) {
+        if ($preparer->check_user_input($input_data)) {
+            if ($action == "update") {
+                $condition = $preparer->get_query_params($cond_values, "pk");
+                $update_values = $preparer->get_query_params($input_data, "up");
+                $loader->perform_action($action, $table_name, $condition, $update_values);
+            } elseif ($action == "delete") {
+                $condition = $preparer->get_query_params($input_data, "pk");
+                $loader->perform_action($action, $table_name, $condition);
+            } else {  // insert
+                $insert_values = $preparer->get_query_params($input_data, "in");
+                $loader->perform_action($action, $table_name, NULL, NULL, $insert_values);
+            }
+        } else {
+            echo "<div class=\"err_mess\">
+                            <p>
+                            Unallowed input.<br>
+                            Try again.
+                            </p>
+                         </div>";
+        }
     }
 }
 
