@@ -13,7 +13,7 @@ class Db_Loader
     {
         $this->db_host = "localhost";
         $this->db_port = 5432;
-        $this->db_name = "mydatabase";
+        $this->db_name = "sklep_php";
         $this->db_user_name = "mateusz";
         $this->db_password = 9326;
         $this->schema_name = "public";
