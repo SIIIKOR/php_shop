@@ -261,15 +261,16 @@ class Db_Loader
     }
 
     function check_login_attempt($login_data, $preparer) {
+        $err_mess = "Unallowed input.<br>Try again.";
         if ($preparer->check_user_input($login_data, "/^[\w\s.@]+$/")) {
             $condition = $preparer->get_query_params($login_data, "pk");
             $results = $this->get_table_row("users", $condition);
             if (is_array($results)) {
                 return TRUE;
             }
-            return FALSE;
+            $err_mess = "Invalid login information.<br>Try again.";
         }
-        $err_mess = new Text_Field("Unallowed input.<br>Try again.", "err_mess");
+        $err_mess = new Text_Field($err_mess, "err_mess");
         $err_mess->create();
         return FALSE;
     }

@@ -18,6 +18,12 @@ if ($handler->get_mode() == "login_attempt") {
 
     $login_data = $handler->get_colective_data();
     $is_successful_login = $loader->check_login_attempt($login_data, $preparer);
+
+    if ($is_successful_login) {
+
+    } else {
+        
+    }
 }
 
 $diff_table_btn = new Btn_Form("login", "f_btn_submit", ["mode"=>"login"], "login_page.php", "r_btn");
