@@ -166,8 +166,7 @@ class Db_Loader
         $query = "SELECT *
                   FROM $table_name
                   WHERE {$condition};";
-        $data = $this->run_query($query);
-        return $data[0];
+        return $this->run_query($query);
     }
 
     function insert_table_row($table_name, $values) {
@@ -249,12 +248,26 @@ class Db_Loader
         return $random_id;
     }
 
-    function register_user($reg_data_array, $preparer) {
-        if ($preparer->check_user_input($reg_data_array, "/^[\w\s.@]+$/")) {
+    function register_user($register_data_array, $preparer) {
+        if ($preparer->check_user_input($register_data_array, "/^[\w\s.@]+$/")) {
             $unoccupied_id = $this->get_unoccupied_id("user_id", "users");
-            array_unshift($reg_data_array, $unoccupied_id);
-            $values = $preparer->get_query_params($reg_data_array, "in");
+            array_unshift($register_data_array, $unoccupied_id);
+            $values = $preparer->get_query_params($register_data_array, "in");
             return $this->insert_table_row("users", $values);
+        }
+        $err_mess = new Text_Field("Unallowed input.<br>Try again.", "err_mess");
+        $err_mess->create();
+        return FALSE;
+    }
+
+    function check_login_attempt($login_data, $preparer) {
+        if ($preparer->check_user_input($login_data, "/^[\w\s.@]+$/")) {
+            $condition = $preparer->get_query_params($login_data, "pk");
+            $results = $this->get_table_row("users", $condition);
+            if (is_array($results)) {
+                return TRUE;
+            }
+            return FALSE;
         }
         $err_mess = new Text_Field("Unallowed input.<br>Try again.", "err_mess");
         $err_mess->create();

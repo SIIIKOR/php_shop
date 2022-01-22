@@ -20,17 +20,17 @@ if ($handler->get_mode() == "login_after_register") {
 
 if ($handler->get_mode() == "login" or $is_successful_reg) {
     print("<h1>Login page</h1>");
-    $col_names = ["e-mail", "password"];
+    $col_names = ["mail", "password"];
     $preset = FALSE;
     if ($is_successful_reg) {
-        $col_names = ["e-mail"=>$register_data["e-mail"], "password"=>$register_data["password"]];
+        $col_names = ["mail"=>$register_data["mail"], "password"=>$register_data["password"]];
         $preset = TRUE;
     }
-    $text_form = new Text_Form([$col_names, NULL], "index.php", $preset, "f_a_btn_submit", "text_form");
+    $text_form = new Text_Form([$col_names, ["mode"=>"login_attempt"]], "index.php", $preset, "f_a_btn_submit", "text_form");
     $text_form->create();
 } elseif($handler->get_mode() == "register" or !$is_successful_reg) {
     print("<h1>Register page</h1>");
-    $col_names = ["name", "surname", "e-mail", "password"];
+    $col_names = ["name", "surname", "mail", "password"];
     $text_form = new Text_Form([$col_names, ["mode"=>"login_after_register"]], "login_page.php", FALSE, "f_a_btn_submit", "text_form");
     $text_form->create();
 }
