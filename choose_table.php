@@ -25,13 +25,13 @@ if ($handler->get_mode() == "vis") {
 } else {
     $link = "add_record.php";
     $table_name = $handler->get_table_name();
-    handle_crud_action($loader, $handler, $preparer, $table_name);
+    $loader->handle_crud_action($handler, $preparer, $table_name);
 }
 
 $choose_table_form = new Multichoice_Btn_Form($table_names_data, $link, "multichoice_btn_form");
 $choose_table_form->create();
 
-$diff_table_btn = new Btn_Form("Go to the main page", "f_btn_submit", NULL, "index.php", "r_btn");
+$diff_table_btn = new Btn_Form("Go to the main page", "f_btn_submit", NULL, "crud_main_page.php", "r_btn");
 $diff_table_btn->create();
 ?>
 

@@ -23,7 +23,7 @@ $table_name = $handler->get_table_name();
 $loader = new Db_Loader();
 $preparer = new Data_Preparer();
 
-handle_crud_action($loader, $handler, $preparer, $table_name);
+$loader->handle_crud_action($handler, $preparer, $table_name);
 
 $data = $loader->get_db_contents_curr_page($table_name, $page_num, $records_per_page);
 $col_names = $loader->get_col_names($table_name);
@@ -39,7 +39,7 @@ $pagination->create();
 $diff_table_btn = new Btn_Form("Choose different table", "f_btn_submit", ["mode"=>"vis"], "choose_table.php", "r_btn");
 $diff_table_btn->create();
 
-$diff_table_btn = new Btn_Form("Go to the main page", "f_btn_submit", NULL, "index.php", "r_btn");
+$diff_table_btn = new Btn_Form("Go to the main page", "f_btn_submit", NULL, "crud_main_page.php", "r_btn");
 $diff_table_btn->create();
 ?>
 

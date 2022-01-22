@@ -35,7 +35,7 @@ $diff_table_btn->create();
 $diff_table_btn = new Btn_Form("Go back", "f_btn_submit", $r_data, "display_table.php", "r_btn");
 $diff_table_btn->create();
 
-$diff_table_btn = new Btn_Form("Go to the main page", "f_btn_submit", NULL, "index.php", "r_btn");
+$diff_table_btn = new Btn_Form("Go to the main page", "f_btn_submit", NULL, "crud_main_page.php", "r_btn");
 $diff_table_btn->create();
 ?>
 

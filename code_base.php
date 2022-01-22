@@ -65,16 +65,17 @@ class Db_Loader
                 $prepared_query->execute();
                 $data = $prepared_query->fetchAll(PDO::FETCH_ASSOC);
             } catch (PDOException $e) {
-                echo "<div class=\"err_mess\">
-                        <p>
-                        {$e->getMessage()}<br>
-                        Try again.
-                        </p>
-                     </div>";
+                $text = "{$e->getMessage()}<br>Try again.";
+                $err_mess = new Text_Field($text, "err_mess");
+                $err_mess->create();
+                return FALSE;
             }
         }
         $conn = NULL;
-        return $data;
+        if ($data) {
+            return $data;
+        }
+        return TRUE;
     }
 
     function get_table_names()
@@ -172,7 +173,7 @@ class Db_Loader
     function insert_table_row($table_name, $values) {
         $query = "INSERT INTO {$table_name}
                   VALUES {$values};";
-        $this->run_query($query);
+        return $this->run_query($query);
     }
 
     function update_table_row($table_name, $condition, $values)
@@ -180,14 +181,14 @@ class Db_Loader
         $query = "UPDATE {$table_name}
                   SET {$values}
                   WHERE {$condition};";
-        $this->run_query($query);
+        return $this->run_query($query);
     }
 
     function delete_table_row($table_name, $condition)
     {
         $query = "DELETE FROM $table_name
                   WHERE {$condition};";
-        $this->run_query($query);
+        return $this->run_query($query);
     }
 
     function perform_action($action, $table_name, $condition=NULL, 
@@ -199,6 +200,65 @@ class Db_Loader
         } elseif ($action == "add") {
             $this->insert_table_row($table_name, $insert_values);
         }
+    }
+
+    function handle_crud_action($handler, $preparer, $table_name) {
+        $action_arr = $handler->handle_form();
+        $action = $action_arr[0];
+        $input_data = $action_arr[1];
+        $cond_values = $action_arr[2];
+        if ($action) {
+            if ($preparer->check_user_input($input_data)) {
+                if ($action == "update") {
+                    $condition = $preparer->get_query_params($cond_values, "pk");
+                    $update_values = $preparer->get_query_params($input_data, "up");
+                    $this->perform_action($action, $table_name, $condition, $update_values);
+                } elseif ($action == "delete") {
+                    $condition = $preparer->get_query_params($input_data, "pk");
+                    $this->perform_action($action, $table_name, $condition);
+                } else {  // insert
+                    $insert_values = $preparer->get_query_params($input_data, "in");
+                    $this->perform_action($action, $table_name, NULL, NULL, $insert_values);
+                }
+            } else {
+                $err_mess = new Text_Field("Unallowed input.<br>Try again.", "err_mess");
+                $err_mess->create();
+            }
+        }
+    }
+
+    function get_occupied_ids($id_name, $table_name) {
+        $query = "SELECT {$id_name}
+                  FROM $table_name;";
+        return $this->run_query($query);
+    }
+
+    function get_unoccupied_id($id_name, $table_name) {
+        $occupied_ids = $this->get_occupied_ids($id_name, $table_name);
+        $ids_set = [];
+        for ($i=0; $i<count($occupied_ids); $i++) {
+            $ids_set[$occupied_ids[$i][$id_name]] = TRUE;
+        }
+        $found = FALSE;
+        while (!$found) {
+            $random_id = rand(1, 999999);
+            if (!array_key_exists($random_id, $ids_set)) {
+                $found = TRUE;
+            }
+        }
+        return $random_id;
+    }
+
+    function register_user($reg_data_array, $preparer) {
+        if ($preparer->check_user_input($reg_data_array, "/^[\w\s.@]+$/")) {
+            $unoccupied_id = $this->get_unoccupied_id("user_id", "users");
+            array_unshift($reg_data_array, $unoccupied_id);
+            $values = $preparer->get_query_params($reg_data_array, "in");
+            return $this->insert_table_row("users", $values);
+        }
+        $err_mess = new Text_Field("Unallowed input.<br>Try again.", "err_mess");
+        $err_mess->create();
+        return FALSE;
     }
 
     function test_conn()
@@ -337,18 +397,17 @@ class Data_Preparer
         return $cond;
     }
 
-    private function is_valid($user_input)
+    private function is_valid($user_input, $pattern)
     {
         // Method that checks user input whether it is safe for database.
-        $pattern = "/^[\w\s]+$/";
         return preg_match($pattern, $user_input);
     }
 
-    function check_user_input($user_input_arr)
+    function check_user_input($user_input_arr, $pattern="/^[\w\s]+$/")
     {
         $is_valid = TRUE;
         foreach (array_values($user_input_arr) as $inpt) {
-            if (!$this->is_valid($inpt)) {
+            if (!$this->is_valid($inpt, $pattern)) {
                 $is_valid = FALSE;
                 break;
             }
@@ -693,32 +752,18 @@ class Pagination extends Html_Object
     }
 }
 
-function handle_crud_action($loader, $handler, $preparer, $table_name) {
-    $action_arr = $handler->handle_form();
-    $action = $action_arr[0];
-    $input_data = $action_arr[1];
-    $cond_values = $action_arr[2];
-    if ($action) {
-        if ($preparer->check_user_input($input_data)) {
-            if ($action == "update") {
-                $condition = $preparer->get_query_params($cond_values, "pk");
-                $update_values = $preparer->get_query_params($input_data, "up");
-                $loader->perform_action($action, $table_name, $condition, $update_values);
-            } elseif ($action == "delete") {
-                $condition = $preparer->get_query_params($input_data, "pk");
-                $loader->perform_action($action, $table_name, $condition);
-            } else {  // insert
-                $insert_values = $preparer->get_query_params($input_data, "in");
-                $loader->perform_action($action, $table_name, NULL, NULL, $insert_values);
-            }
-        } else {
-            echo "<div class=\"err_mess\">
-                            <p>
-                            Unallowed input.<br>
-                            Try again.
-                            </p>
-                         </div>";
-        }
+class Text_Field extends Html_Object
+{
+    private $text;
+
+    function __construct($text, $class_name = NULL, $id_name = NULL)
+    {
+        $this->text = $text;
+    }
+
+    function get_contents()
+    {
+        return "<p>{$this->text}</p>";
     }
 }
 
