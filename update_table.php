@@ -23,7 +23,7 @@ $preparer = new Data_Preparer();
 
 $condition = $preparer->get_query_params($cond_values);
 
-$chosen_row = $loader->get_table_row($table_name, $condition);
+$chosen_row = $loader->get_table_col($table_name, $condition);
 $btn_data = array_merge($preparer->identify_data($cond_values, "pk"), $r_data);
 
 $text_form = new Text_Form([$chosen_row[0], $btn_data], "display_table.php", TRUE, "f_u_btn_submit", "text_form");

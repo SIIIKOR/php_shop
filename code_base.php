@@ -160,12 +160,19 @@ class Db_Loader
         return $data;
     }
 
-    function get_table_row($table_name, $condition)
+    function get_table_col($table_name, $condition=NULL, $col_name="*", $distinct=FALSE)
     {
         // returns row from given table based on condition.
-        $query = "SELECT *
-                  FROM $table_name
-                  WHERE {$condition};";
+        $selection = "SELECT {$col_name}";
+        if ($distinct) {
+            $selection = "SELECT DISTINCT {$col_name}";
+        }
+        $query = "{$selection} FROM {$table_name}";
+        if ($condition) {
+        $query .= " WHERE {$condition};";
+        } else {
+            $query .= ";";
+        }
         return $this->run_query($query);
     }
 
@@ -264,7 +271,7 @@ class Db_Loader
         $err_mess = "Unallowed input.<br>Try again.";
         if ($preparer->check_user_input($login_data, "/^[\w\s.@]+$/")) {
             $condition = $preparer->get_query_params($login_data, "pk");
-            $results = $this->get_table_row("users", $condition);
+            $results = $this->get_table_col("users", $condition);
             if (is_array($results)) {
                 return TRUE;
             }
@@ -409,6 +416,14 @@ class Data_Preparer
             $cond .= ")";
         }
         return $cond;
+    }
+
+    function get_query_output_row_to_list($query_out, $row_name) {
+        $list = [];
+        foreach ($query_out as $row) {
+            array_push($list, $row[$row_name]);
+        }
+        return $list;
     }
 
     private function is_valid($user_input, $pattern)
