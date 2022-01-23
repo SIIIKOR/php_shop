@@ -25,10 +25,13 @@ $preparer = new Data_Preparer();
 
 $loader->handle_crud_action($handler, $preparer, $table_name);
 
-$data = $loader->get_db_contents_curr_page($table_name, $page_num, $records_per_page);
+$data = $loader->get_table_contents($table_name, NULL, "*", FALSE, $page_num, $records_per_page);
 $col_names = $loader->get_col_names($table_name);
 $primary_keys = $loader->get_primary_key_names();
-
+print_r($col_names);
+print("<br><br>");
+print_r($primary_keys);
+print("<br><br>");
 $table = new Table($data, $col_names, $primary_keys, $table_name, $page_num);
 $table->create();
 

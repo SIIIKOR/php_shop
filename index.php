@@ -68,7 +68,7 @@ if (isset($_SESSION["mail"])) {
 
 print($ul_content);
 
-$query_out_category_names = $loader->get_table_col("product_groups", NULL, "category_name", TRUE);
+$query_out_category_names = $loader->get_table_contents("product_groups", NULL, "category_name", TRUE);
 $category_names = $preparer->get_query_output_row_to_list($query_out_category_names, "category_name");
 $category_names = $preparer->tag_data("category_name", $category_names);
 
@@ -76,16 +76,16 @@ $choose_category = new Multichoice_Btn_Form($category_names, "index.php", "categ
 $choose_category->create();
 
 $table_name = "product_groups";
-$data = $loader->get_db_contents_curr_page($table_name, $page_num, $records_per_page);
-print_r($data);
-print("<br>");
-// $table = new Table($data, $col_names, $primary_keys, $table_name, $page_num);
-// $table->create();
+$col_names = ["product_name", "category_name", "price"];
+$data = $loader->get_table_contents($table_name, NULL, $col_names, FALSE, $page_num, $records_per_page);
+
+$primary_keys = $loader->get_primary_key_names();
+$table = new Table($data, $col_names, $primary_keys, $table_name, $page_num);
+$table->create();
 
 $total_row_count = $loader->get_table_row_amount($table_name);
-print_r($total_row_count)
-// $pagination = new Pagination($table_name, $page_num, $records_per_page, $total_row_count, "index.php");
-// $pagination->create();
+$pagination = new Pagination($table_name, $page_num, $records_per_page, $total_row_count, "index.php");
+$pagination->create();
 
 ?>
 

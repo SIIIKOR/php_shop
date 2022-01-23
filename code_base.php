@@ -148,31 +148,37 @@ class Db_Loader
         return $out;
     }
 
-    function get_db_contents_curr_page($table_name, $page_num, $records_per_page)
+    function get_table_contents($table_name, $condition=NULL, $col_names="*", 
+                           $distinct=FALSE, $page_num=NULL, $records_per_page=NULL)
     {
-        // Method that returns data for given page for given row amount per page.
-        $offset = 0 + ($page_num) * $records_per_page;
-        $query = "SELECT *
-                  FROM {$table_name}
-                  LIMIT {$records_per_page}
-                  OFFSET {$offset}";
-        $data = $this->run_query($query);
-        return $data;
-    }
-
-    function get_table_col($table_name, $condition=NULL, $col_name="*", $distinct=FALSE)
-    {
-        // returns row from given table based on condition.
-        $selection = "SELECT {$col_name}";
+        $col_name = $col_names;
+        if (is_array($col_names)) {
+            $selection_str = "";
+            $i = 0;
+            foreach ($col_names as $name) {
+                if ($i == 0) {
+                    $selection_str .= "$name";
+                } else {
+                    $selection_str .= ", $name";
+                }
+                $i++;
+            }
+            $col_name = $selection_str;
+        }
         if ($distinct) {
             $selection = "SELECT DISTINCT {$col_name}";
+        } else {
+            $selection = "SELECT {$col_name}";
         }
         $query = "{$selection} FROM {$table_name}";
         if ($condition) {
-        $query .= " WHERE {$condition};";
-        } else {
-            $query .= ";";
+            $query .= " WHERE {$condition}";
         }
+        if ($records_per_page) {
+            $offset = 0 + ($page_num) * $records_per_page;
+            $query .= " LIMIT {$records_per_page} OFFSET {$offset}";
+        }
+        $query .= ";";
         return $this->run_query($query);
     }
 
@@ -271,7 +277,7 @@ class Db_Loader
         $err_mess = "Unallowed input.<br>Try again.";
         if ($preparer->check_user_input($login_data, "/^[\w\s.@]+$/")) {
             $condition = $preparer->get_query_params($login_data, "pk");
-            $results = $this->get_table_col("users", $condition);
+            $results = $this->get_table_contents("users", $condition);
             if (is_array($results)) {
                 return TRUE;
             }
