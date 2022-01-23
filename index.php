@@ -35,31 +35,45 @@ $category_name = $handler->get_post_arg("category_name");
 
 if ($handler->get_post_arg("mode") == "login_attempt") {
     $login_data = $handler->get_colective_data();
-    $is_successful_login = $loader->check_login_attempt($login_data, $preparer);
+    $login_data_out = $loader->check_login_attempt($login_data, $preparer);
+    $is_successful_login = $login_data_out[0];
     if ($is_successful_login) {
         $_SESSION = $login_data;
-        setcookie("mail", $login_data["mail"], time() + 60);
-        setcookie("password", $login_data["password"], time() + 60);
+        setcookie("mail", $login_data["mail"], time() + 60*60); // 1h
+        setcookie("password", $login_data["password"], time() + 60*60);
         $login_mess = new Text_Field("Login successful.", "login_mess");
         $login_mess->create();
     }
 }
 
 if (isset($_SESSION["mail"])) {
-    $is_successful_login = $loader->check_login_attempt($_SESSION, $preparer);
+    $login_data_out = $loader->check_login_attempt($_SESSION, $preparer);
+    $is_successful_login = $login_data_out[0];
     if ($is_successful_login) {
+        $user_id = $login_data_out[1];
+        $is_admin = $loader->check_admin_status(["user_id" => $user_id], $preparer);
+
         $login_mess = new Text_Field("Logged in.", "login_mess");
         $login_mess->create();
 
-        $cart_btn = new Btn_Form("cart", "f_btn_submit", NULL, "cart.php", "r_btn");
-        $orders_btn = new Btn_Form("orders", "f_btn_submit", NULL, "orders.php", "r_btn");
         $log_out_btn = new Btn_Form("logout", "f_btn_submit", ["mode"=>"logout"], "index.php", "r_btn");
-
-        $ul_content = "<ul>
-                       <li>{$cart_btn->get_html()}</li>
-                       <li>{$orders_btn->get_html()}</li>
-                       <li>{$log_out_btn->get_html()}</li>
-                       </ul>";
+        
+        if ($is_admin) {
+            $admin_btn = $cart_btn = new Btn_Form("Go CRUD MODE", "f_btn_submit", NULL, "crud_main_page.php", "admin_btn");
+            $ul_content = "<ul>
+                           <li>{$admin_btn->get_html()}</li>
+                           <li>{$log_out_btn->get_html()}</li>
+                           </ul>";
+        } else {
+            $cart_btn = new Btn_Form("cart", "f_btn_submit", NULL, "cart.php", "r_btn");
+            $orders_btn = new Btn_Form("orders", "f_btn_submit", NULL, "orders.php", "r_btn");
+            $ul_content = "<ul>
+                           <li>{$cart_btn->get_html()}</li>
+                           <li>{$orders_btn->get_html()}</li>
+                           <li>{$log_out_btn->get_html()}</li>
+                           </ul>";
+        }
+        
     }
 } else {
     $login_mess = new Text_Field("Guest mode.", "login_mess");

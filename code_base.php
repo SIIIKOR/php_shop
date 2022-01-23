@@ -279,12 +279,22 @@ class Db_Loader
             $condition = $preparer->get_query_params($login_data, "pk");
             $results = $this->get_table_contents("users", $condition);
             if (is_array($results)) {
-                return TRUE;
+                // True if found and user id
+                return [TRUE, $results[0]["user_id"]];
             }
             $err_mess = "Invalid login information.<br>Try again.";
         }
         $err_mess = new Text_Field($err_mess, "err_mess");
         $err_mess->create();
+        return [FALSE, NULL];
+    }
+
+    function check_admin_status($user_id, $preparer) {
+        $condition = $preparer->get_query_params($user_id, "pk");
+        $results = $this->get_table_contents("staff", $condition);
+        if (is_array($results)) {
+            return TRUE;
+        }
         return FALSE;
     }
 
