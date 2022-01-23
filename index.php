@@ -20,12 +20,13 @@ $loader = new Db_Loader();
 $preparer = new Data_Preparer();
 
 $records_per_page = 5;
-$page_num = $handler->get_page_num();
+$page_num = $handler->get_post_arg("page_num");
 if (!$page_num) {
     $page_num = 0;
 }
+$category_name = $handler->get_post_arg("category_name");
 
-if ($handler->get_mode() == "login_attempt") {
+if ($handler->get_post_arg("mode") == "login_attempt") {
     $login_data = $handler->get_colective_data();
     $is_successful_login = $loader->check_login_attempt($login_data, $preparer);
     if ($is_successful_login) {
@@ -70,6 +71,7 @@ print($ul_content);
 
 $query_out_category_names = $loader->get_table_contents("product_groups", NULL, "category_name", TRUE);
 $category_names = $preparer->get_query_output_row_to_list($query_out_category_names, "category_name");
+array_push($category_names, "reset");
 $category_names = $preparer->tag_data("category_name", $category_names);
 
 $choose_category = new Multichoice_Btn_Form($category_names, "index.php", "category_names");
@@ -77,7 +79,16 @@ $choose_category->create();
 
 $table_name = "product_groups";
 $col_names = ["product_name", "category_name", "price"];
-$data = $loader->get_table_contents($table_name, NULL, $col_names, FALSE, $page_num, $records_per_page);
+$condition = NULL;
+if ($category_name) {
+    if ($category_name == "reset") {
+        $condition = NULL;
+    } else {
+        $condition = "category_name = '$category_name'";
+    }
+}
+
+$data = $loader->get_table_contents($table_name, $condition, $col_names, FALSE, $page_num, $records_per_page);
 
 $primary_keys = $loader->get_primary_key_names();
 $table = new Table($data, $col_names, $primary_keys, $table_name, $page_num);

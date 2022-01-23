@@ -12,7 +12,7 @@
 require_once("code_base.php");
 
 $handler = new Data_Handler($_POST);
-$table_name = $handler->get_table_name();
+$table_name = $handler->get_post_arg("table_name");
 
 $r_data = ["table_name"=>$table_name, "page_num"=>$page_num,];
 

@@ -14,11 +14,11 @@ require_once("code_base.php");
 $handler = new Data_Handler($_POST);
 
 $records_per_page = 5;
-$page_num = $handler->get_page_num();
+$page_num = $handler->get_post_arg("page_num");
 if (!$page_num) {
     $page_num = 0;
 }
-$table_name = $handler->get_table_name();
+$table_name = $handler->get_post_arg("table_name");
 
 $loader = new Db_Loader();
 $preparer = new Data_Preparer();

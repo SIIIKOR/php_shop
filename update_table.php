@@ -13,8 +13,8 @@ require_once("code_base.php");
 
 $handler = new Data_Handler($_POST);
 $cond_values = $handler->get_colective_data();
-$table_name = $handler->get_table_name();
-$page_num = $handler->get_page_num();
+$table_name = $handler->get_post_arg("table_name");
+$page_num = $handler->get_post_arg("page_num");
 
 $r_data = ["table_name"=>$table_name, "page_num"=>$page_num,];
 

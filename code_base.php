@@ -314,18 +314,11 @@ class Data_Handler
         $this->id = $this->get_identifier();
     }
 
-    function get_table_name()
-    {
-        return $this->post_data["table_name"];
-    }
-
-    function get_page_num()
-    {
-        return $this->post_data["page_num"];
-    }
-
-    function get_mode() {
-        return $this->post_data["mode"];
+    function get_post_arg($arg_name) {
+        if (isset($this->post_data[$arg_name])) {
+            return $this->post_data[$arg_name];
+        }
+        return FALSE;
     }
 
     function get_identified_data_amount()

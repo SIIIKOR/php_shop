@@ -18,13 +18,13 @@ $preparer = new Data_Preparer();
 $table_names = $loader->get_table_names();
 $table_names_data = $preparer->tag_data("table_name", $table_names);
 
-if ($handler->get_mode() == "vis") {
+if ($handler->get_post_arg("mode") == "vis") {
     $link = "display_table.php";
-} elseif($handler->get_mode() == "add") {
+} elseif($handler->get_post_arg("mode") == "add") {
     $link = "add_record.php";
 } else {
     $link = "add_record.php";
-    $table_name = $handler->get_table_name();
+    $table_name = $handler->get_post_arg("table_name");
     $loader->handle_crud_action($handler, $preparer, $table_name);
 }
 
