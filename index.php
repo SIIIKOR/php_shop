@@ -11,13 +11,20 @@
 <?php
 require_once("code_base.php");
 
-if (isset($_COOKIE["mail"])) {
-    $_SESSION = $_COOKIE;
-}
-
 $handler = new Data_Handler($_POST, 1);
 $loader = new Db_Loader();
 $preparer = new Data_Preparer();
+
+if ($handler->get_post_arg("mode") == "logout") {
+    unset($_COOKIE['mail']);
+    unset($_COOKIE['password']);
+    setcookie('mail', null, -1, '/'); 
+    setcookie('password', null, -1, '/'); 
+}
+
+if (isset($_COOKIE["mail"])) {
+    $_SESSION = $_COOKIE;
+}
 
 $records_per_page = 5;
 $page_num = $handler->get_post_arg("page_num");
@@ -46,7 +53,7 @@ if (isset($_SESSION["mail"])) {
 
         $cart_btn = new Btn_Form("cart", "f_btn_submit", NULL, "cart.php", "r_btn");
         $orders_btn = new Btn_Form("orders", "f_btn_submit", NULL, "orders.php", "r_btn");
-        $log_out_btn = new Btn_Form("logout", "f_btn_submit", NULL, "index.php", "r_btn");
+        $log_out_btn = new Btn_Form("logout", "f_btn_submit", ["mode"=>"logout"], "index.php", "r_btn");
 
         $ul_content = "<ul>
                        <li>{$cart_btn->get_html()}</li>
@@ -91,7 +98,7 @@ if ($category_name) {
 $data = $loader->get_table_contents($table_name, $condition, $col_names, FALSE, $page_num, $records_per_page);
 
 $primary_keys = $loader->get_primary_key_names();
-$table = new Table($data, $col_names, $primary_keys, $table_name, $page_num);
+$table = new Table($data, $col_names, $primary_keys, $table_name, $page_num, "product_page.php");
 $table->create();
 
 $total_row_count = $loader->get_table_row_amount($table_name);
