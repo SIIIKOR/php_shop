@@ -298,6 +298,18 @@ class Db_Loader
         return FALSE;
     }
 
+    function check_login_status($cookie, $preparer) {
+        if (isset($cookie["mail"])) {
+            $login_data_out = $this->check_login_attempt($cookie, $preparer);
+            $is_successful_login = $login_data_out[0];
+            if ($is_successful_login) {
+                $user_id = $login_data_out[1];
+                $is_admin = $this->check_admin_status(["user_id" => $user_id], $preparer);
+            }
+        }
+        return [$is_successful_login, $is_admin];
+    }
+
     function test_conn()
     {
         // Method that prints out information about connection status.
@@ -388,7 +400,8 @@ class Data_Preparer
         return [$tag => $data];
     }
 
-    function identify_data($data, $id) {
+    function identify_data($data, $id)
+    {
         $new_data = [];
         foreach ($data as $k=>$v) {
             $new_data["{$id}_{$k}"] = $v;

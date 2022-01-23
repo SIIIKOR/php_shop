@@ -12,25 +12,34 @@
 require_once("code_base.php");
 
 $loader = new Db_Loader();
-$handler = new Data_Handler($_POST);
 $preparer = new Data_Preparer();
 
-$table_names = $loader->get_table_names();
-$table_names_data = $preparer->tag_data("table_name", $table_names);
+$login_data = $loader->check_login_status($_COOKIE, $preparer);
+$is_logged = $login_data[0];
+$is_admin = $login_data[1];
 
-if ($handler->get_post_arg("mode") == "vis") {
-    $link = "display_table.php";
-} elseif($handler->get_post_arg("mode") == "add") {
-    $link = "add_record.php";
+if ($is_admin) {
+    $handler = new Data_Handler($_POST);
+
+    $table_names = $loader->get_table_names();
+    $table_names_data = $preparer->tag_data("table_name", $table_names);
+    
+    if ($handler->get_post_arg("mode") == "vis") {
+        $link = "display_table.php";
+    } elseif($handler->get_post_arg("mode") == "add") {
+        $link = "add_record.php";
+    } else {
+        $link = "add_record.php";
+        $table_name = $handler->get_post_arg("table_name");
+        $loader->handle_crud_action($handler, $preparer, $table_name);
+    }
+    
+    $choose_table_form = new Multichoice_Btn_Form($table_names_data, $link, "multichoice_btn_form");
+    $choose_table_form->create();
 } else {
-    $link = "add_record.php";
-    $table_name = $handler->get_post_arg("table_name");
-    $loader->handle_crud_action($handler, $preparer, $table_name);
+    $login_mess = new Text_Field("insufficient permissions.", "login_mess");
+    $login_mess->create();
 }
-
-$choose_table_form = new Multichoice_Btn_Form($table_names_data, $link, "multichoice_btn_form");
-$choose_table_form->create();
-
 $diff_table_btn = new Btn_Form("Go to the main page", "f_btn_submit", NULL, "crud_main_page.php", "r_btn");
 $diff_table_btn->create();
 ?>
