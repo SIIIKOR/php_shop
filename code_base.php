@@ -773,6 +773,8 @@ class Text_Field extends Html_Object
     function __construct($text, $class_name = NULL, $id_name = NULL)
     {
         $this->text = $text;
+        $this->class_name = $class_name;
+        $this->id_name = $id_name;
     }
 
     function get_contents()
