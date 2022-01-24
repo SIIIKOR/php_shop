@@ -700,7 +700,7 @@ class Table extends Html_Object
     function __construct($table_data, $col_names, $primary_keys, $table_name, $page_num, $link="update_table.php", $class_name = "table", $id_name = NULL)
     {
         $this->table_data = $table_data;
-        $this->col_names = $col_names;
+        $this->col_names = array_flip($col_names);
         $this->page_num = $page_num;
         $this->table_name = $table_name;
         $this->primary_keys = $primary_keys[$table_name];
@@ -710,23 +710,30 @@ class Table extends Html_Object
     }
 
     private function get_table_row($data_row, $type = "td")
+    /**
+     * @param array $data_row
+     * @param string $type
+     */
     {
-        if ($type == "td") {
+        if ($type == "td") { // data cell mode
             $inpt_class_name = "data_cell";
         } else {
-            $type = "th";
+            $type = "th";  // heading mode
             $inpt_class_name = "col_name";
         }
         $cells = "";
         foreach ($data_row as $key => $value) {
-            $cells .= "<{$type} class=\"{$inpt_class_name}\">{$value}</{$type}>";
-            if ($type == "td") {
+            // if current key is ment to be displayed for the user
+            if (array_key_exists($key, $this->col_names)) {
+                $cells .= "<{$type} class=\"{$inpt_class_name}\">{$value}</{$type}>";
+            }
+            if ($type == "td") {  // collecting data for btns
                 if (array_key_exists($key, $this->primary_keys)) {
                     $post_data[$key] = $value;
                 }
             }
         }
-        if ($type == "td") {
+        if ($type == "td") {  // creating btn
             $post_data["table_name"] = $this->table_name;
             $post_data["page_num"] = $this->page_num;
             $form_btn = new Btn_Form("X", "f_btn_action", $post_data, $this->link);
@@ -736,8 +743,11 @@ class Table extends Html_Object
     }
 
     private function get_col_names_row()
+    /**
+     * @return string html row with colnames.
+     */
     {
-        $cells = $this->get_table_row($this->col_names, "th");
+        $cells = $this->get_table_row(array_keys($this->col_names), "th");
         return "<tr>{$cells}</tr>";
     }
 

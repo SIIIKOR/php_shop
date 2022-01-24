@@ -128,7 +128,7 @@ if ($category_name) {
 $data = $loader->get_table_contents($table_name, $condition, $col_names, FALSE, $page_num, $records_per_page);
 // create table
 $primary_keys = $loader->get_primary_key_names();
-$table = new Table($data, $col_names, $primary_keys, $table_name, $page_num, "product_page.php");
+$table = new Table($data, array_slice($col_names, 1), $primary_keys, $table_name, $page_num, "product_page.php");
 $table->create();
 // create pagination
 $total_row_count = $loader->get_table_row_amount($table_name);
