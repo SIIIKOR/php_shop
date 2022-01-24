@@ -557,7 +557,7 @@ abstract class Form extends Html_Object
             $input .= " id=\"{$id}\"";
         }
         $input .= " name=\"{$name}\"";
-        if ($value) {
+        if (!is_null($value)) {
             $input .= " value=\"{$value}\"";
         }
         if ($req) {
@@ -602,6 +602,8 @@ class Btn_Form extends Form
         $this->link = $link;
         $this->class_name = $class_name;
         $this->id_name = $id_name;
+        print_r($this->data);
+        print("<br><br>");
     }
 
     protected function get_contents()
@@ -710,7 +712,7 @@ class Table extends Html_Object
     }
 
     private function get_table_row($data_row, $type = "td")
-    /**
+    /** Method that returns html code that creates table row.
      * @param array $data_row
      * @param string $type
      */
