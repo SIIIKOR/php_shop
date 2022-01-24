@@ -602,8 +602,6 @@ class Btn_Form extends Form
         $this->link = $link;
         $this->class_name = $class_name;
         $this->id_name = $id_name;
-        print_r($this->data);
-        print("<br><br>");
     }
 
     protected function get_contents()
