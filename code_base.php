@@ -185,6 +185,8 @@ class Db_Loader
     function insert_table_row($table_name, $values) {
         $query = "INSERT INTO {$table_name}
                   VALUES {$values};";
+        print($query);
+        print("<br>");
         return $this->run_query($query);
     }
 
@@ -193,6 +195,8 @@ class Db_Loader
         $query = "UPDATE {$table_name}
                   SET {$values}
                   WHERE {$condition};";
+        print($query);
+        print("<br>");
         return $this->run_query($query);
     }
 
@@ -308,6 +312,16 @@ class Db_Loader
             }
         }
         return [$is_successful_login, $is_admin];
+    }
+
+    function get_cart_contents($user_id) {
+        $query = "WITH prod_ids as (
+            SELECT product_id FROM cart WHERE user_id = {$user_id}
+            )
+            SELECT prod_ids.product_id, product_name, price, category_name, description
+            FROM product_groups, prod_ids
+            WHERE group_id = prod_ids.product_id;";
+        return $this->run_query($query);
     }
 
     function test_conn()
@@ -549,8 +563,15 @@ abstract class Form extends Html_Object
 
     protected function get_input_row($type, $name, $value = NULL, $id = NULL, $req = FALSE)
     {
-        /*
-            Method that create html input object.
+        /** Method that returns html code for creating input row, with
+         *  desired options
+         * 
+         * @param string $type desired type of input form
+         * @param string $name name of the input form
+         * @param mixed $value value of the input can be string, int, bool, etc.
+         * @param string $id id of the input form
+         * @param bool $req whether this field is required to submit
+         * @return string $input html code for input row 
          */
         $input = "<input type=\"{$type}\"";
         if ($id) {
@@ -703,13 +724,24 @@ class Table extends Html_Object
     function __construct($table_data, $col_names, $primary_keys, $table_name, $page_num, $link="update_table.php", $class_name = "table", $id_name = NULL)
     {
         $this->table_data = $table_data;
+        if (is_null($col_names)) {
+            $col_names = $this->get_col_names_from_data();
+        }
         $this->col_names = array_flip($col_names);
         $this->page_num = $page_num;
-        $this->table_name = $table_name;
-        $this->primary_keys = $primary_keys[$table_name];
+        if ($table_name) {
+            $this->table_name = $table_name;
+            $this->primary_keys = $primary_keys[$table_name];
+        } else {
+            $this->primary_keys = $primary_keys;
+        }
         $this->class_name = $class_name;
         $this->id_name = $id_name;
         $this->link = $link;
+    }
+
+    private function get_col_names_from_data() {
+        return array_keys($this->table_data[0]);
     }
 
     private function get_table_row($data_row, $type = "td")
