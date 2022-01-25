@@ -311,7 +311,7 @@ class Db_Loader
     }
 
     function get_cart_contents($user_id, $count=FALSE, $page_num=NULL, $records_per_page=NULL) {
-        $selection = "prod_ids.product_id, product_name, price, category_name, description";
+        $selection = "products.product_id, product_name, price, category_name, description";
         if ($count) {
             $selection = "COUNT(*)";
         }
@@ -319,8 +319,9 @@ class Db_Loader
             SELECT product_id FROM cart WHERE user_id = {$user_id}
             )
             SELECT {$selection}
-            FROM product_groups, prod_ids
-            WHERE group_id = prod_ids.product_id";
+            FROM product_groups, products, prod_ids
+            WHERE prod_ids.product_id = products.product_id
+             and products.group_id = product_groups.group_id";
         if ($records_per_page) {
             $offset = 0 + ($page_num) * $records_per_page;
             $query .= " LIMIT {$records_per_page} OFFSET {$offset}";

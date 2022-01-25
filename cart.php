@@ -58,6 +58,9 @@ if ($is_logged) {
     $total_row_count = $loader->get_cart_contents($user_id, TRUE)[0]["count"];
     $pagination = new Pagination(NULL, $page_num, $records_per_page, $total_row_count, "cart.php");
     $pagination->create();
+
+    $place_order = new Btn_Form("Place your order", "f_btn_submit", ["mode"=>"place_order"], "orders.php", "r_btn");
+    $place_order->create();
 } else {
     $login_mess = new Text_Field("You should be logged in to display your cart.", "login_mess");
     $login_mess->create();
