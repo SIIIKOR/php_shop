@@ -33,8 +33,11 @@ $cond_is_available["is_available"] = 'TRUE';
 
 $condition = $preparer->get_query_params($cond_is_available, "pk");
 $instances_of_product = $loader->get_table_contents("products", $condition);
-
-$products_left = count($instances_of_product);
+if (is_array($instances_of_product)) {
+    $products_left = count($instances_of_product);
+} else {
+    $products_left = 0;
+}
 
 $price = new Text_Field("{$products_left} left", "avaliable");
 $price->create();

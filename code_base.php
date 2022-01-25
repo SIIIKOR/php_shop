@@ -185,8 +185,6 @@ class Db_Loader
     function insert_table_row($table_name, $values) {
         $query = "INSERT INTO {$table_name}
                   VALUES {$values};";
-        print($query);
-        print("<br>");
         return $this->run_query($query);
     }
 
@@ -195,8 +193,6 @@ class Db_Loader
         $query = "UPDATE {$table_name}
                   SET {$values}
                   WHERE {$condition};";
-        print($query);
-        print("<br>");
         return $this->run_query($query);
     }
 
@@ -745,9 +741,14 @@ class Table extends Html_Object
         } else {
             $this->primary_keys = $primary_keys;
         }
+        $this->link = $link;
         $this->class_name = $class_name;
         $this->id_name = $id_name;
-        $this->link = $link;
+        $this->btn_data = NULL;
+    }
+
+    function set_btn_data($data) {
+        $this->btn_data = $data;
     }
 
     private function get_col_names_from_data() {
@@ -786,6 +787,11 @@ class Table extends Html_Object
                 $post_data["table_name"] = $this->table_name;
             }
             $post_data["page_num"] = $this->page_num;
+            if ($this->btn_data) {
+                foreach($this->btn_data as $k=>$v) {
+                    $post_data[$k] = $v;
+                }
+            }
             $form_btn = new Btn_Form("X", "f_btn_action", $post_data, $this->link);
             $cells .= "<{$type} class=\"actions\">{$form_btn->get_html()}</{$type}>";
         }

@@ -27,7 +27,13 @@ if ($is_logged) {
         // if pagination wasn't used yet.
         $page_num = 0;
     }
-    
+
+    if ($handler->get_post_arg("mode") == "out_cart_id") { // delete product from cart
+        $product_id = $handler->get_post_arg("product_id");
+        $loader->delete_table_row("cart", "product_id = {$product_id}");
+        $loader->update_table_row("products", "product_id = {$product_id}", "is_available = true");
+    }
+
     // get user id
     $user_id = $loader->check_login_attempt($_COOKIE, $preparer)[1];
     // if user just added product to cart.
@@ -42,8 +48,12 @@ if ($is_logged) {
     }
     // create table with user's car contents.
     $cart_contents_data = $loader->get_cart_contents($user_id, FALSE, $page_num, $records_per_page);
-    $cart_contents = new Table($cart_contents_data, NULL, ["product_id"=>1], NULL, $page_num, "cart.php");
-    $cart_contents->create();
+    if (is_array($cart_contents_data)) {
+        $cart_contents = new Table($cart_contents_data, NULL, ["product_id"=>1], NULL, $page_num, "cart.php");    
+        $cart_contents->set_btn_data(["mode"=>"out_cart_id"]);
+        $cart_contents->create();
+    }
+    
     // create pagination so that users can display big amounts of data.
     $total_row_count = $loader->get_cart_contents($user_id, TRUE)[0]["count"];
     $pagination = new Pagination(NULL, $page_num, $records_per_page, $total_row_count, "cart.php");
