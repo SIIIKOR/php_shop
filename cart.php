@@ -40,9 +40,14 @@ if ($is_logged) {
         // change availability status
         $loader->update_table_row("products", "product_id = {$product_id}", "is_available = false");
     }
-    $cart_contents_data = $loader->get_cart_contents($user_id);
+    // create table with user's car contents.
+    $cart_contents_data = $loader->get_cart_contents($user_id, FALSE, $page_num, $records_per_page);
     $cart_contents = new Table($cart_contents_data, NULL, ["product_id"=>1], NULL, $page_num, "cart.php");
     $cart_contents->create();
+    // create pagination so that users can display big amounts of data.
+    $total_row_count = $loader->get_cart_contents($user_id, TRUE)[0]["count"];
+    $pagination = new Pagination(NULL, $page_num, $records_per_page, $total_row_count, "cart.php");
+    $pagination->create();
 } else {
     $login_mess = new Text_Field("You should be logged in to display your cart.", "login_mess");
     $login_mess->create();

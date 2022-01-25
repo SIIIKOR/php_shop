@@ -314,13 +314,22 @@ class Db_Loader
         return [$is_successful_login, $is_admin];
     }
 
-    function get_cart_contents($user_id) {
+    function get_cart_contents($user_id, $count=FALSE, $page_num=NULL, $records_per_page=NULL) {
+        $selection = "prod_ids.product_id, product_name, price, category_name, description";
+        if ($count) {
+            $selection = "COUNT(*)";
+        }
         $query = "WITH prod_ids as (
             SELECT product_id FROM cart WHERE user_id = {$user_id}
             )
-            SELECT prod_ids.product_id, product_name, price, category_name, description
+            SELECT {$selection}
             FROM product_groups, prod_ids
-            WHERE group_id = prod_ids.product_id;";
+            WHERE group_id = prod_ids.product_id";
+        if ($records_per_page) {
+            $offset = 0 + ($page_num) * $records_per_page;
+            $query .= " LIMIT {$records_per_page} OFFSET {$offset}";
+        }
+        $query .= ";";
         return $this->run_query($query);
     }
 
@@ -721,7 +730,8 @@ class Table extends Html_Object
     private $primary_keys;
     private $link;
 
-    function __construct($table_data, $col_names, $primary_keys, $table_name, $page_num, $link="update_table.php", $class_name = "table", $id_name = NULL)
+    function __construct($table_data, $col_names, $primary_keys, $table_name, 
+     $page_num, $link="update_table.php", $class_name = "table", $id_name = NULL)
     {
         $this->table_data = $table_data;
         if (is_null($col_names)) {
@@ -829,8 +839,10 @@ class Pagination extends Html_Object
 
     protected function get_contents()
     {
-        $data = ["table_name"=>$this->table_name];
-        $data["table_name"] = $this->table_name;
+        $data = [];
+        if ($this->table_name) {
+            $data["table_name"] = $this->table_name;
+        }
 
         $pagination = "";
         if ($this->page_num > 0) {
