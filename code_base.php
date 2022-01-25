@@ -782,7 +782,9 @@ class Table extends Html_Object
             }
         }
         if ($type == "td") {  // creating btn
-            $post_data["table_name"] = $this->table_name;
+            if ($this->table_name) {
+                $post_data["table_name"] = $this->table_name;
+            }
             $post_data["page_num"] = $this->page_num;
             $form_btn = new Btn_Form("X", "f_btn_action", $post_data, $this->link);
             $cells .= "<{$type} class=\"actions\">{$form_btn->get_html()}</{$type}>";
