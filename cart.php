@@ -28,6 +28,8 @@ if ($is_logged) {
         // insert data into database.
         $in_vals = $preparer->get_query_params([$user_id, $product_id], "in");
         $loader->insert_table_row("cart", $in_vals);
+        // change availability status
+        $loader->update_table_row("products", "product_id = {$product_id}", "is_available = false");
     }
 } else {
     $login_mess = new Text_Field("You should be logged in to display your cart.", "login_mess");

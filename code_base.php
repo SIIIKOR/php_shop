@@ -345,7 +345,7 @@ class Data_Handler
 
     function get_identified_data_amount()
     {
-        return $this->post_data["{$this->id}_amount"];
+        return $this->post_data["{$this->id}-amount"];
     }
 
     function get_identifier() {
@@ -376,7 +376,7 @@ class Data_Handler
         $identified_data = array_slice($this->post_data, $identified_data_start, -$this->predef_par_amount-1);
         $unidentified_data = [];
         foreach ($identified_data as $k=>$v) {
-            $unidentified_data[explode("_", $k)[1]] = $v;
+            $unidentified_data[explode("-", $k)[1]] = $v;
         }
         return $unidentified_data;
     }
@@ -404,10 +404,10 @@ class Data_Preparer
     {
         $new_data = [];
         foreach ($data as $k=>$v) {
-            $new_data["{$id}_{$k}"] = $v;
+            $new_data["{$id}-{$k}"] = $v;
         }
         $new_data["id"] = $id;
-        $new_data["{$id}_amount"] = count($data);
+        $new_data["{$id}-amount"] = count($data);
         return $new_data;
     }
 
@@ -558,6 +558,9 @@ abstract class Form extends Html_Object
         }
         $input .= " name=\"{$name}\"";
         if (!is_null($value)) {
+            if ($value == FALSE) {
+                $value = "0";
+            }
             $input .= " value=\"{$value}\"";
         }
         if ($req) {
@@ -724,7 +727,10 @@ class Table extends Html_Object
         $cells = "";
         foreach ($data_row as $key => $value) {
             // if current key is ment to be displayed for the user
-            if (array_key_exists($key, $this->col_names)) {
+            if (array_key_exists($key, $this->col_names) or array_key_exists($value, $this->col_names)) {
+                if ($value == FALSE) {  // jakaś magia phpa, true to 1 ale false to nic
+                    $value = 0;
+                }
                 $cells .= "<{$type} class=\"{$inpt_class_name}\">{$value}</{$type}>";
             }
             if ($type == "td") {  // collecting data for btns
