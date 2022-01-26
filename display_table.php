@@ -32,7 +32,7 @@ if ($is_admin) {
     $data = $loader->get_table_contents($table_name, NULL, "*", FALSE, $page_num, $records_per_page);
     $col_names = $loader->get_col_names($table_name);
     $primary_keys = $loader->get_primary_key_names();
-    $table = new Table($data, $col_names, $primary_keys, $table_name, $page_num);
+    $table = new Table($data, $col_names, $primary_keys, $table_name, $page_num, "update_table.php");
     $table->create();
     
     $total_row_count = $loader->get_table_row_amount($table_name);

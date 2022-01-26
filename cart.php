@@ -47,7 +47,7 @@ if ($is_logged) {
         $loader->update_table_row("products", "product_id = {$product_id}", "is_available = false");
     }
     // create table with user's car contents.
-    $cart_contents_data = $loader->get_cart_contents($user_id, FALSE, $page_num, $records_per_page);
+    $cart_contents_data = $loader->get_cart_contents($user_id, "cart", FALSE, $page_num, $records_per_page);
     if (is_array($cart_contents_data)) {
         $cart_contents = new Table($cart_contents_data, NULL, ["product_id"=>1], NULL, $page_num, "cart.php");    
         $cart_contents->set_btn_data(["mode"=>"out_cart_id"]);
@@ -55,7 +55,7 @@ if ($is_logged) {
     }
     
     // create pagination so that users can display big amounts of data.
-    $total_row_count = $loader->get_cart_contents($user_id, TRUE)[0]["count"];
+    $total_row_count = $loader->get_cart_contents($user_id, "cart", TRUE)[0]["count"];
     $pagination = new Pagination(NULL, $page_num, $records_per_page, $total_row_count, "cart.php");
     $pagination->create();
 

@@ -31,22 +31,29 @@ if ($is_logged) {
     
     $user_id = $loader->check_login_attempt($_COOKIE, $preparer)[1];
     if ($handler->get_post_arg("mode") == "place_order") {
-        $cart_contents_data = $loader->get_cart_contents($user_id);
+        $cart_contents_data = $loader->get_cart_contents($user_id, "orders", 
+         FALSE, $page_num, $records_per_page);
         $time = date("Y-m-d H:i:s");
-        print_r($time);
-        print("<br><br><br><br>");
         foreach ($cart_contents_data as $row) {
-            print_r($row);
-            print("<br><br>");
+            $product_id = $row["product_id"];
+            $in_arr = ["product_id"=>$product_id, 
+             "user_id"=>$user_id, "order_placed_data"=>$time];
+            $in_values = $preparer->get_query_params($in_arr, "in");
+            $loader->insert_table_row("orders", $in_values);
+            $loader->delete_table_row("cart", "product_id = $product_id");
         }
     }
+    $orders_contents_data = $loader->get_cart_contents($user_id, "orders", FALSE, $page_num, $records_per_page);
+    $orders_contents_count = $loader->get_cart_contents($user_id, "orders", TRUE)[0]["count"];
+    if (is_array($orders_contents_data)) {
+        $orders_contents = new Table($orders_contents_data);    
+        $orders_contents->create();
 
-    // $cart_contents_data = $loader->get_cart_contents($user_id, FALSE, $page_num, $records_per_page);
-    // if (is_array($cart_contents_data)) {
-    //     $orders_contents = new Table($cart_contents_data, NULL, NULL, NULL, $page_num, "cart.php");    
-    //     $orders_contents->create();
-    // }
-
+        // create pagination so that users can display big amounts of data.
+        $total_row_count = $orders_contents_count;
+        $pagination = new Pagination(NULL, $page_num, $records_per_page, $total_row_count, "orders.php");
+        $pagination->create();
+    }
 } else {
     $login_mess = new Text_Field("You should be logged in to display your cart.", "login_mess");
     $login_mess->create();

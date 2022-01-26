@@ -310,13 +310,18 @@ class Db_Loader
         return [$is_successful_login, $is_admin];
     }
 
-    function get_cart_contents($user_id, $count=FALSE, $page_num=NULL, $records_per_page=NULL) {
-        $selection = "products.product_id, product_name, price, category_name, description";
-        if ($count) {
+    function get_cart_contents($user_id, $table_name, $count=FALSE, $page_num=NULL, $records_per_page=NULL) {
+        if ($table_name == "cart") {
+            $with_sel = "product_id";
+            $selection = "products.product_id, product_name, price, category_name, description";
+        } elseif ($table_name == "orders") {
+            $with_sel = "product_id, order_placed_date";
+            $selection = "products.product_id, product_name, category_name, price, order_placed_date";
+        } if ($count) {
             $selection = "COUNT(*)";
         }
         $query = "WITH prod_ids as (
-            SELECT product_id FROM cart WHERE user_id = {$user_id}
+            SELECT {$with_sel} FROM {$table_name} WHERE user_id = {$user_id}
             )
             SELECT {$selection}
             FROM product_groups, products, prod_ids
@@ -726,13 +731,15 @@ class Table extends Html_Object
     private $page_num;
     private $primary_keys;
     private $link;
+    private $btn_data;
 
-    function __construct($table_data, $col_names, $primary_keys, $table_name, 
-     $page_num, $link="update_table.php", $class_name = "table", $id_name = NULL)
+    function __construct($table_data, $col_names=NULL, $primary_keys=NULL, $table_name=NULL, 
+     $page_num=NULL, $link=NULL, $class_name = "table", $id_name = NULL)
     {
         $this->table_data = $table_data;
+        // if column names are not provided use table_names from table data
         if (is_null($col_names)) {
-            $col_names = $this->get_col_names_from_data();
+            $col_names = array_keys($table_data[0]);
         }
         $this->col_names = array_flip($col_names);
         $this->page_num = $page_num;
@@ -752,10 +759,6 @@ class Table extends Html_Object
         $this->btn_data = $data;
     }
 
-    private function get_col_names_from_data() {
-        return array_keys($this->table_data[0]);
-    }
-
     private function get_table_row($data_row, $type = "td")
     /** Method that returns html code that creates table row.
      * @param array $data_row
@@ -764,6 +767,7 @@ class Table extends Html_Object
     {
         if ($type == "td") { // data cell mode
             $inpt_class_name = "data_cell";
+            $post_data = [];
         } else {
             $type = "th";  // heading mode
             $inpt_class_name = "col_name";
@@ -773,11 +777,11 @@ class Table extends Html_Object
             // if current key is ment to be displayed for the user
             if (array_key_exists($key, $this->col_names) or array_key_exists($value, $this->col_names)) {
                 if ($value == FALSE) {  // jakaś magia phpa, true to 1 ale false to nic
-                    $value = 0;
+                    $value = "0";
                 }
                 $cells .= "<{$type} class=\"{$inpt_class_name}\">{$value}</{$type}>";
             }
-            if ($type == "td") {  // collecting data for btns
+            if ($type == "td" and !is_null($this->link)) {  // collecting data for btns
                 if (array_key_exists($key, $this->primary_keys)) {
                     $post_data[$key] = $value;
                 }
@@ -787,14 +791,18 @@ class Table extends Html_Object
             if ($this->table_name) {
                 $post_data["table_name"] = $this->table_name;
             }
-            $post_data["page_num"] = $this->page_num;
+            if ($this->page_num) {
+                $post_data["page_num"] = $this->page_num;
+            }
             if ($this->btn_data) {
                 foreach($this->btn_data as $k=>$v) {
                     $post_data[$k] = $v;
                 }
             }
-            $form_btn = new Btn_Form("X", "f_btn_action", $post_data, $this->link);
-            $cells .= "<{$type} class=\"actions\">{$form_btn->get_html()}</{$type}>";
+            if ($this->link) {
+                $form_btn = new Btn_Form("X", "f_btn_action", $post_data, $this->link);
+                $cells .= "<{$type} class=\"actions\">{$form_btn->get_html()}</{$type}>";
+            }
         }
         return $cells;
     }
@@ -811,6 +819,7 @@ class Table extends Html_Object
     private function get_table_contents()
     {
         $contents = "";
+
         foreach ($this->table_data as $data_row) {
             $cells = $this->get_table_row($data_row);
             $contents .= "<tr>{$cells}</tr>";
@@ -852,7 +861,6 @@ class Pagination extends Html_Object
         if ($this->table_name) {
             $data["table_name"] = $this->table_name;
         }
-
         $pagination = "";
         if ($this->page_num > 0) {
             // Creates pagination that allows user to go left.
@@ -862,7 +870,7 @@ class Pagination extends Html_Object
             $pagination .= $pagi_btn->get_html();
             // if there should exists right button.
           } if (($this->page_num+1)*$this->records_per_page<$this->total_row_count) {
-              // Creates pagination that allows user to go right.
+            // Creates pagination that allows user to go right.
             $new_page_num = $this->page_num + 1;
             $data["page_num"] = $new_page_num;
             $pagi_btn = new Btn_Form("right", "form_pagi_right_btn", $data, $this->link);
