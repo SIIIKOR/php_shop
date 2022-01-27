@@ -454,7 +454,7 @@ class Data_Preparer
         return [$tag => $data];
     }
 
-    function identify_data($data, $id)
+    function get_identified_data($data, $id)
     {
         $new_data = [];
         foreach ($data as $k=>$v) {
