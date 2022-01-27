@@ -268,12 +268,23 @@ class Db_Loader
         return $this->insert_table_row("users", $values);
     }
 
-    function check_login_attempt($login_data, $preparer) {
+    function check_login_attempt($login_data, $preparer, $initial=FALSE) {
         $err_mess = "Unallowed input.<br>Try again.";
         if ($preparer->check_user_input($login_data, "/^[\w\s.@]+$/")) {
-            $condition = $preparer->get_query_params(["mail"=>$login_data["mail"]], "pk");
+            if ($initial) {
+                $password = $login_data["password"];
+                $login_data = ["mail"=>$login_data["mail"]];
+            }
+            $condition = $preparer->get_query_params($login_data, "pk");
             $results = $this->get_table_contents("users", $condition);
-            if (is_array($results)) {
+            
+            if ($initial) {
+                $hashed_password = $results[0]["password"];
+                $is_correct = password_verify($password, $hashed_password);
+                if ($is_correct or $password == $hashed_password) {
+                    return [TRUE, $results[0]["user_id"]];
+                }
+            } elseif (is_array($results)) {
                 // True if found and user id
                 return [TRUE, $results[0]["user_id"]];
             }
@@ -294,7 +305,7 @@ class Db_Loader
     }
 
     function check_login_status($cookie, $preparer) {
-        if (isset($cookie["mail"])) {
+        if (isset($cookie["user_id"])) {
             $login_data_out = $this->check_login_attempt($cookie, $preparer);
             $is_successful_login = $login_data_out[0];
             if ($is_successful_login) {

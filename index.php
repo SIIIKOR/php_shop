@@ -18,17 +18,14 @@ $preparer = new Data_Preparer();
 if ($handler->get_post_arg("mode") == "logout") {
     // if user pressed logout btn delete cookie
     // so that user will have to login again.
-    unset($_COOKIE['mail']);
-    unset($_COOKIE['password']);
-    setcookie('mail', null, -1, '/'); 
-    setcookie('password', null, -1, '/'); 
+    unset($_COOKIE['user_id']);
+    setcookie('user_id', null, -1, '/'); 
 }
 
-if (isset($_COOKIE["mail"])) {
+if (isset($_COOKIE["user_id"])) {
     // if cookie is set, assign it to seassion variable.
     $_SESSION = $_COOKIE;
 }
-
 $records_per_page = 5;  // how many records will be displayed per page
 $page_num = $handler->get_post_arg("page_num");
 if (!$page_num) {
@@ -41,21 +38,21 @@ $category_name = $handler->get_post_arg("category_name");
 if ($handler->get_post_arg("mode") == "login_attempt") {
     // after using login btn, get inserted data.
     $login_data = $handler->get_colective_data();
-    $login_data_out = $loader->check_login_attempt($login_data, $preparer);
+    $login_data_out = $loader->check_login_attempt($login_data, $preparer, TRUE);
     // check if it's correct
     $is_successful_login = $login_data_out[0];
     if ($is_successful_login) {
+        $user_id = $login_data_out[1];
         // if it's correct create cookie and session var with this data
-        $_SESSION = $login_data;
-        setcookie("mail", $login_data["mail"], time() + 60*60); // 1h
-        setcookie("password", $login_data["password"], time() + 60*60);
+        $_SESSION = ["user_id"=>$user_id];
+        setcookie("user_id", $user_id, time() + 60*60); // 1h
         $login_mess = new Text_Field("Login successful.", "login_mess");
         $login_mess->create();
     }
 }
 
 // display btns specific for login status.
-if (isset($_SESSION["mail"])) {
+if (isset($_SESSION["user_id"])) {
     // if cookie is set and thus seasion
     $login_data_out = $loader->check_login_attempt($_SESSION, $preparer);
     $is_successful_login = $login_data_out[0];
