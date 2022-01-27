@@ -16,7 +16,6 @@ if ($handler->get_post_arg("mode") == "login_after_register") {
     $preparer = new Data_Preparer();
 
     $register_data = $handler->get_colective_data();
-    print_r($register_data);
     $hashed_register_data = [];
     foreach ($register_data as $k=>$v) {
         $hashed_register_data[$k] = $v;
@@ -24,7 +23,6 @@ if ($handler->get_post_arg("mode") == "login_after_register") {
             $hashed_register_data[$k] = password_hash($v, PASSWORD_DEFAULT);
         }
     }
-    print_r($hashed_register_data);
     $is_successful_reg = $loader->register_user($hashed_register_data, $preparer);
 }
 

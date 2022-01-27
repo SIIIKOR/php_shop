@@ -265,18 +265,32 @@ class Db_Loader
         $unoccupied_id = $this->get_unoccupied_id("user_id", "users");
         array_unshift($register_data_array, $unoccupied_id);
         $values = $preparer->get_query_params($register_data_array, "in");
-        return $this->insert_table_row("users", $values);
+        $is_successful = $this->insert_table_row("users", $values);
+        if ($is_successful) {
+            $token = bin2hex(openssl_random_pseudo_bytes(4));
+            $token = password_hash($token, PASSWORD_DEFAULT);
+            $this->insert_table_row("tokens", "({$unoccupied_id}, '{$token}')");
+        }
+        return $is_successful;
     }
 
     function check_login_attempt($login_data, $preparer, $initial=FALSE) {
         $err_mess = "Unallowed input.<br>Try again.";
-        if ($preparer->check_user_input($login_data, "/^[\w\s.@]+$/")) {
+        if ($preparer->check_user_input($login_data, "/^[\w\s.@]+$/") or !$initial) {
             if ($initial) {
                 $password = $login_data["password"];
                 $login_data = ["mail"=>$login_data["mail"]];
             }
             $condition = $preparer->get_query_params($login_data, "pk");
-            $results = $this->get_table_contents("users", $condition);
+            if ($initial) {
+                $results = $this->get_table_contents("users", $condition);
+            } else {
+                $data = $this->get_token_by_mail($login_data["mail"])[0];
+                $good_token = $data["cookie_token"];
+                if ($login_data["cookie_token"] == $good_token) {
+                    return [TRUE, $data["user_id"]]; // data[0] is user_id
+                }
+            }
             
             if ($initial) {
                 $hashed_password = $results[0]["password"];
@@ -305,7 +319,7 @@ class Db_Loader
     }
 
     function check_login_status($cookie, $preparer) {
-        if (isset($cookie["user_id"])) {
+        if (isset($cookie["cookie_token"])) {
             $login_data_out = $this->check_login_attempt($cookie, $preparer);
             $is_successful_login = $login_data_out[0];
             if ($is_successful_login) {
@@ -338,6 +352,15 @@ class Db_Loader
             $query .= " LIMIT {$records_per_page} OFFSET {$offset}";
         }
         $query .= ";";
+        return $this->run_query($query);
+    }
+
+    function get_token_by_mail($mail) {
+        $query = "WITH user_ids as (
+                     SELECT user_id from users where mail = '{$mail}')
+                 SELECT tokens.user_id, cookie_token
+                 FROM tokens, user_ids
+                 where user_ids.user_id = tokens.user_id;";
         return $this->run_query($query);
     }
 

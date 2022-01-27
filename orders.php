@@ -17,11 +17,9 @@ $preparer = new Data_Preparer();
 // check login
 $login_data = $loader->check_login_status($_COOKIE, $preparer);
 $is_logged = $login_data[0];
-
 if ($is_logged) {
     // get user id
     $handler = new Data_Handler($_POST);
-    
     $records_per_page = 5;  // how many records will be displayed per page
     $page_num = $handler->get_post_arg("page_num");
     if (!$page_num) {
@@ -31,7 +29,7 @@ if ($is_logged) {
     
     $user_id = $loader->check_login_attempt($_COOKIE, $preparer)[1];
     if ($handler->get_post_arg("mode") == "place_order") {
-        $cart_contents_data = $loader->get_cart_contents($user_id, "orders", 
+        $cart_contents_data = $loader->get_cart_contents($user_id, "cart", 
          FALSE, $page_num, $records_per_page);
         $time = date("Y-m-d H:i:s");
         foreach ($cart_contents_data as $row) {

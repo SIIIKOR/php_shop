@@ -18,11 +18,13 @@ $preparer = new Data_Preparer();
 if ($handler->get_post_arg("mode") == "logout") {
     // if user pressed logout btn delete cookie
     // so that user will have to login again.
-    unset($_COOKIE['user_id']);
-    setcookie('user_id', null, -1, '/'); 
+    unset($_COOKIE['mail']);
+    unset($_COOKIE['cookie_token']);
+    setcookie('mail', null, -1, '/');
+    setcookie('cookie_token', null, -1, '/');
 }
 
-if (isset($_COOKIE["user_id"])) {
+if (isset($_COOKIE["cookie_token"])) {
     // if cookie is set, assign it to seassion variable.
     $_SESSION = $_COOKIE;
 }
@@ -43,16 +45,19 @@ if ($handler->get_post_arg("mode") == "login_attempt") {
     $is_successful_login = $login_data_out[0];
     if ($is_successful_login) {
         $user_id = $login_data_out[1];
+        $mail = $login_data["mail"];
+        $token_data = $loader->get_token_by_mail($mail)[0];
+        $token = $token_data["cookie_token"];
         // if it's correct create cookie and session var with this data
-        $_SESSION = ["user_id"=>$user_id];
-        setcookie("user_id", $user_id, time() + 60*60); // 1h
+        $_SESSION = ["mail"=>$mail, "cookie_token"=>$token];
+        setcookie("mail", $mail, time() + 60*60); // 1h
+        setcookie("cookie_token", $token, time() + 60*60); // 1h
         $login_mess = new Text_Field("Login successful.", "login_mess");
         $login_mess->create();
     }
 }
-
 // display btns specific for login status.
-if (isset($_SESSION["user_id"])) {
+if (isset($_SESSION["cookie_token"])) {
     // if cookie is set and thus seasion
     $login_data_out = $loader->check_login_attempt($_SESSION, $preparer);
     $is_successful_login = $login_data_out[0];
