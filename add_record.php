@@ -10,6 +10,8 @@
 
 <?php
 require_once("code_base.php");
+$preparer = new Data_Preparer();
+$loader = new Db_Loader();
 
 $login_data = $loader->check_login_status($_COOKIE, $preparer);
 $is_logged = $login_data[0];
@@ -21,11 +23,8 @@ if ($is_admin) {
     
     $r_data = ["table_name"=>$table_name, "page_num"=>$page_num,];
     
-    $loader = new Db_Loader();
-    $preparer = new Data_Preparer();
-    
     $col_names = $loader->get_col_names($table_name);
-    
+
     $text_form = new Text_Form([$col_names, $r_data], "choose_table.php", FALSE, "f_a_btn_submit", "text_form");
     $text_form->create();
     

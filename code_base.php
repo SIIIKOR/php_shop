@@ -508,7 +508,7 @@ class Data_Preparer
         return preg_match($pattern, $user_input);
     }
 
-    function check_user_input($user_input_arr, $pattern="/^[\w\s]+$/")
+    function check_user_input($user_input_arr, $pattern="/^[\w\s\.]+$/")
     {
         $is_valid = TRUE;
         foreach (array_values($user_input_arr) as $inpt) {
@@ -781,7 +781,7 @@ class Table extends Html_Object
         $this->link = $link;
         $this->class_name = $class_name;
         $this->id_name = $id_name;
-        $this->btn_data = NULL;
+        $this->btn_data = [];
     }
 
     function set_btn_data($data) {
@@ -816,22 +816,14 @@ class Table extends Html_Object
                 }
             }
         }
-        if ($type == "td") {  // creating btn
-            if ($this->table_name) {
+        if ($type == "td" and !is_null($this->link)) {  // creating btn
                 $post_data["table_name"] = $this->table_name;
-            }
-            if ($this->page_num) {
                 $post_data["page_num"] = $this->page_num;
-            }
-            if ($this->btn_data) {
                 foreach($this->btn_data as $k=>$v) {
                     $post_data[$k] = $v;
                 }
-            }
-            if ($this->link) {
                 $form_btn = new Btn_Form("X", "f_btn_action", $post_data, $this->link);
                 $cells .= "<{$type} class=\"actions\">{$form_btn->get_html()}</{$type}>";
-            }
         }
         return $cells;
     }

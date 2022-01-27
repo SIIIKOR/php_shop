@@ -21,10 +21,12 @@ $is_admin = $login_data[1];
 if ($is_admin) {
     $handler = new Data_Handler($_POST);
     $cond_values = $handler->get_colective_data();
+
     $table_name = $handler->get_post_arg("table_name");
     $page_num = $handler->get_post_arg("page_num");
-    
     $r_data = ["table_name"=>$table_name, "page_num"=>$page_num,];
+    print("<br>");
+    print_r($_POST);
     
     $condition = $preparer->get_query_params($cond_values);
     
@@ -33,7 +35,6 @@ if ($is_admin) {
     
     $text_form = new Text_Form([$chosen_row[0], $btn_data], "display_table.php", TRUE, "f_u_btn_submit", "text_form");
     $text_form->create();
-    
     $diff_table_btn = new Btn_Form("Delete", "f_d_btn_submit", array_merge($cond_values, $r_data), "display_table.php", "r_btn");
     $diff_table_btn->create();
     

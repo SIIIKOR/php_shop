@@ -26,12 +26,13 @@ if ($is_admin) {
         $page_num = 0;
     }
     $table_name = $handler->get_post_arg("table_name");
-    
     $loader->handle_crud_action($handler, $preparer, $table_name);
     
     $data = $loader->get_table_contents($table_name, NULL, "*", FALSE, $page_num, $records_per_page);
     $col_names = $loader->get_col_names($table_name);
     $primary_keys = $loader->get_primary_key_names();
+    print("nr_strony<br>");
+    print_r($page_num);
     $table = new Table($data, $col_names, $primary_keys, $table_name, $page_num, "update_table.php");
     $table->create();
     
