@@ -10,14 +10,25 @@
 require_once("code_base.php");
 $handler = new Data_Handler($_POST, 1);
 
+// used to run querie to register user
 if ($handler->get_post_arg("mode") == "login_after_register") {
     $loader = new Db_Loader();
     $preparer = new Data_Preparer();
 
     $register_data = $handler->get_colective_data();
-    $is_successful_reg = $loader->register_user($register_data, $preparer);
+    print_r($register_data);
+    $hashed_register_data = [];
+    foreach ($register_data as $k=>$v) {
+        $hashed_register_data[$k] = $v;
+        if ($k == "password") {
+            $hashed_register_data[$k] = password_hash($v, PASSWORD_DEFAULT);
+        }
+    }
+    print_r($hashed_register_data);
+    $is_successful_reg = $loader->register_user($hashed_register_data, $preparer);
 }
 
+// used to login, also used to login right after register
 if ($handler->get_post_arg("mode") == "login" or $is_successful_reg) {
     print("<h1>Login page</h1>");
     $col_names = ["mail", "password"];

@@ -252,7 +252,7 @@ class Db_Loader
             $ids_set[$occupied_ids[$i][$id_name]] = TRUE;
         }
         $found = FALSE;
-        while (!$found) {
+        while (!$found) { // to głupie mogłem użyć incrementu.
             $random_id = rand(1, 999999);
             if (!array_key_exists($random_id, $ids_set)) {
                 $found = TRUE;
@@ -262,21 +262,16 @@ class Db_Loader
     }
 
     function register_user($register_data_array, $preparer) {
-        if ($preparer->check_user_input($register_data_array, "/^[\w\s.@]+$/")) {
-            $unoccupied_id = $this->get_unoccupied_id("user_id", "users");
-            array_unshift($register_data_array, $unoccupied_id);
-            $values = $preparer->get_query_params($register_data_array, "in");
-            return $this->insert_table_row("users", $values);
-        }
-        $err_mess = new Text_Field("Unallowed input.<br>Try again.", "err_mess");
-        $err_mess->create();
-        return FALSE;
+        $unoccupied_id = $this->get_unoccupied_id("user_id", "users");
+        array_unshift($register_data_array, $unoccupied_id);
+        $values = $preparer->get_query_params($register_data_array, "in");
+        return $this->insert_table_row("users", $values);
     }
 
     function check_login_attempt($login_data, $preparer) {
         $err_mess = "Unallowed input.<br>Try again.";
         if ($preparer->check_user_input($login_data, "/^[\w\s.@]+$/")) {
-            $condition = $preparer->get_query_params($login_data, "pk");
+            $condition = $preparer->get_query_params(["mail"=>$login_data["mail"]], "pk");
             $results = $this->get_table_contents("users", $condition);
             if (is_array($results)) {
                 // True if found and user id
