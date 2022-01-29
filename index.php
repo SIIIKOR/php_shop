@@ -107,7 +107,7 @@ print($ul_content);
 
 // get names of categories and create buttons to choose them.
 $query_out_category_names = $loader->get_table_contents("product_groups", NULL, "category_name", TRUE);
-$category_names = $preparer->get_query_output_row_to_list($query_out_category_names, "category_name");
+$category_names = $preparer->get_query_output_col_to_list($query_out_category_names, "category_name");
 array_push($category_names, "reset");
 $category_names = $preparer->tag_data("category_name", $category_names);
 
