@@ -587,7 +587,7 @@ abstract class Psql_Query
     protected $table_names;
     protected $condition;
 
-    function set_table_names_arr($table_names)
+    function set_from_statement($table_names)
     {
         /**
          * Method that sets array of table names with which statement will
@@ -598,7 +598,7 @@ abstract class Psql_Query
         $this->table_names = $table_names;
     }
 
-    function set_condition_arr($condition)
+    function set_where_statement($condition)
     {
         /**
          * Method that sets key(col_name)=>value(col_value) array
@@ -661,7 +661,7 @@ class Psql_Query_Select extends Psql_Query
     protected $page_num;
     protected $records_per_page;
 
-    function set_statement_values_arr($statement_values)
+    function set_select_statement($statement_values)
     {
         /**
          * Method that sets array of col_names to select.
@@ -725,7 +725,7 @@ class Psql_Query_Insert extends Psql_Query
 {
     protected $insert_values;
 
-    function set_insert_values_arr($insert_values)
+    function set_insert_statement($insert_values)
     {
         /**
          * Method that sets array with column name values to insert.
@@ -763,7 +763,7 @@ class Psql_Query_Update extends Psql_Query
 {
     protected $update_values;
 
-    function set_update_values_arr($update_values)
+    function set_update_statement($update_values)
     {
         /**
          * Method that sets key(col_name)=>value(col_value) array
@@ -827,7 +827,7 @@ class Psql_Query_Select_With extends Psql_Query_Select
         $this->sub_query_name = "sq_name;";
     }
 
-    function set_wstatement_values_arr($w_statement_values)
+    function set_w_select_statement($w_statement_values)
     {
         /**
          * Method that sets array of col_names to select.
@@ -835,7 +835,7 @@ class Psql_Query_Select_With extends Psql_Query_Select
         $this->w_statement_values = $w_statement_values;
     }
 
-    function set_wtable_names_arr($w_table_names)
+    function set_w_from_statement($w_table_names)
     {
         /**
          * Method that sets array of table names with which statement will
@@ -846,7 +846,7 @@ class Psql_Query_Select_With extends Psql_Query_Select
         $this->w_table_names = $w_table_names;
     }
 
-    function set_wcondition_arr($w_condition)
+    function set_w_where_statement($w_condition)
     {
         /**
          * Method that sets key(col_name)=>value(col_value) array
@@ -893,15 +893,15 @@ class Psql_Query_Select_With extends Psql_Query_Select
          */
         $w_query = new Psql_Query_Select();  // subquery
         $w_query->set_preparer($this->prep);
-        $w_query->set_statement_values_arr($this->w_statement_values);
-        $w_query->set_table_names_arr($this->w_table_names);
-        $w_query->set_condition_arr($this->w_condition);
+        $w_query->set_select_statement($this->w_statement_values);
+        $w_query->set_from_statement($this->w_table_names);
+        $w_query->set_where_statement($this->w_condition);
 
         $query = new Psql_Query_Select();  // query
         $query->set_preparer($this->prep);
-        $query->set_statement_values_arr($this->statement_values);
-        $query->set_table_names_arr($this->table_names);
-        $query->set_condition_arr($this->condition);
+        $query->set_select_statement($this->statement_values);
+        $query->set_from_statement($this->table_names);
+        $query->set_where_statement($this->condition);
 
         $final_query = "WITH {$this->sub_query_name} as 
          ({$w_query->get_query(FALSE)})
