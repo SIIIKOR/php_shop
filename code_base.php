@@ -253,7 +253,6 @@ class Psql_Query_Select extends Psql_Query
         if (isset($this->page_num) and isset($this->records_per_page)) {
             $query .= " {$this->get_limit_str()}";
         }
-        return $query;
     }
 }
 
@@ -498,6 +497,13 @@ class Query_Runner
  */
 {
     private $loader;
+    private $prep;
+
+    function __construct($loader, $preparer)
+    {
+        $this->loader = $loader;
+        $this->prep = $preparer;
+    }
 
     function set_loader($loader)
     {
@@ -515,6 +521,11 @@ class Query_Runner
          * Method used to inject preparer class.
          */
         $this->prep = $preparer;
+    }
+
+    function give_preparer()
+    {
+        return $this->prep;
     }
 
     function get_table_names()
@@ -697,7 +708,7 @@ class Query_Runner
         $query = new Psql_Query_Insert($return_id);
         $query->set_preparer($this->prep);
 
-        $query->set_where_statement($table_names);
+        $query->set_from_statement($table_names);
         $query->set_insert_statement($values);
         if (!is_null($column_names)) {
             $query->set_select_statement($column_names);
@@ -757,8 +768,11 @@ class Login_handler
     private $is_logged;
     private $is_admin;
 
-    function __construct($login_data, $is_cookie=FALSE)
+    function __construct($runner, $login_data, $is_cookie=FALSE)
     {
+        $this->run = $runner;
+        $this->prep = $runner->give_preparer();
+
         if ($is_cookie) {
             $this->cookie_data = $login_data;
         } else {
@@ -770,15 +784,6 @@ class Login_handler
         $this->is_admin = $login_status[1];
     }
 
-    function set_handler($handler)
-    {
-        /**
-         * Dependency injection.
-         * Method used to inject handler class.
-         */
-        $this->handl = $handler;
-    }
-
     function set_runner($runner)
     {
         /**
@@ -786,6 +791,16 @@ class Login_handler
          * Method used to inject runner class.
          */
         $this->run = $runner;
+        $this->prep = $runner->give_preparer();
+    }
+
+    function set_preparer($preparer)
+    {
+        /**
+         * Dependency injection.
+         * Method used to inject preparer class.
+         */
+        $this->prep = $preparer;
     }
 
     function is_logged()
@@ -825,7 +840,7 @@ class Login_handler
          * 
          * @return bool
          */
-        $results = $this->run->get_table_contents(["*"], ["staff"], ["user_id"=>$user_id]);
+        $results = $this->run->get_table_contents(["*"], ["staff"], ["id"=>$user_id]);
         if (is_array($results)) {
             return TRUE;
         }
@@ -850,11 +865,12 @@ class Login_handler
                 $password = $this->user_login_data["password"];
                 // get user_id and hashed password by mail
                 $results = $this->run->get_table_contents(["*"], ["users"], ["mail"=>$this->user_login_data["mail"]])[0];
+                print_r($results);
                 $db_password = $results["password"];
                 $is_correct = password_verify($password, $db_password);
                 // second statment is used when password in db in not hashed(test purpose)
                 if ($is_correct or $password == $db_password) {
-                    return [TRUE, $this->check_admin_status($results["user_id"])];
+                    return [TRUE, $this->check_admin_status($results["id"])];
                 }
             } else {
                 $err_mess = "Unallowed input.<br>Try again.";
@@ -862,7 +878,7 @@ class Login_handler
         } elseif (isset($this->cookie_data)) { // login with token
             $token_data = $this->get_token_by_mail($this->cookie_data["mail"]);
             if ($this->cookie_data["cookie_token"] == $token_data["cookie_token"]) {
-                return [TRUE, $this->check_admin_status($token_data["user_id"])]; // data[0] is user_id
+                return [TRUE, $this->check_admin_status($token_data["id"])]; // data[0] is user_id
             }
         }
         $err_mess = new Text_Field($err_mess, "err_mess");
@@ -872,14 +888,14 @@ class Login_handler
 }
 
 class Shop_Handler
-{   
-    private $register_data;
+{
     private $run;
     private $prep;
 
-    function __construct($register_data_array)
+    function __construct($runner)
     {
-        $this->register_data = $register_data_array;
+        $this->run = $runner;
+        $this->prep = $runner->give_preparer();
     }
 
     function set_runner($runner)
@@ -889,6 +905,7 @@ class Shop_Handler
          * Method used to inject runner class.
          */
         $this->run = $runner;
+        $this->prep = $runner->give_preparer();
     }
 
     function set_preparer($preparer)
@@ -900,22 +917,20 @@ class Shop_Handler
         $this->prep = $preparer;
     }
 
-    function register_user()
+    function register_user($register_data_array)
     {
         /**
          * Method that run query that registers user.
          * 
-         * @param array $register_data_array data with all required data to register
+         * @param array $register_data_array key(col_name)=>value data with all required data to register
          * 
          * @return bool
          */
-
-        $register_data = $this->register_data;
-        $user_id = $this->run->insert_table_row("users", array_values($register_data), array_keys($register_data), TRUE);
+        $user_id = $this->run->insert_table_row(["users"], array_values($register_data_array), array_keys($register_data_array), TRUE);
         // is user got registered, creates token that will be stored in cookie to sustain login
         if (is_integer($user_id)) {
             $token = $this->prep->get_random_token(8);
-            return $this->run->insert_table_row("tokens", [$user_id, $token]);
+            return $this->run->insert_table_row(["tokens"], [$user_id, $token]);
         }
         return FALSE;
     }
