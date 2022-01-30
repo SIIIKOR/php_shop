@@ -1096,6 +1096,21 @@ class Data_Preparer
         return $new_data;
     }
 
+    private static function get_value_str($value)
+    {
+        if (is_string($value)) {
+            return "'{$value}'";
+        }
+        elseif (is_integer($value)) {
+            return "{$value}";
+        } elseif (is_bool($value)) {
+            if ($value) {
+                return "TRUE";
+            }
+            return "FALSE";
+        }
+    }
+
     function get_query_params($val_arr, $mode = "pk")
     {
         /**
@@ -1111,31 +1126,31 @@ class Data_Preparer
         $cond = "";
         $i = 0;
         foreach($val_arr as $key => $value) {
+            if (is_array($value)) {
+                $value_str = $this::get_value_str($value[0]);
+                $type_cast = $value[1];
+                $value_str .= $type_cast;
+            } else {
+                $value_str = $this::get_value_str($value);
+            }
+
             if ($i == 0) {
                 if ($mode == "pk") {
-                    if (is_array($value)) {  // special case for type cast
-                        $cond .= "$key = '{$value[0]}'{$value[1]}";
-                    } else {
-                        $cond .= "$key = '$value' ";
-                    }
+                    $cond .= "$key = $value_str";
                 } elseif ($mode == "up") {
-                    $cond .= "$key = '$value'";
+                    $cond .= "$key = $value_str";
                 } elseif ($mode == "in") {
-                    $cond .= "('$value'";
+                    $cond .= "($value_str";
                 } elseif ($mode == "n") {
                     $cond .= "{$value}";
                 }
             } else {
                 if ($mode == "pk") {
-                    if (is_array($value)) {
-                        $cond .= " and $key = '{$value[0]}'{$value[1]}";
-                    } else {
-                        $cond .= " and $key = '$value'";
-                    }
+                    $cond .= " and $key = $value_str";
                 } elseif ($mode == "up") {
-                    $cond .= ", $key = '$value'";
+                    $cond .= ", $key = $value_str";
                 } elseif ($mode == "in") {
-                    $cond .= ", '$value'";
+                    $cond .= ", $value_str";
                 } elseif ($mode == "n") {
                     $cond .= ", {$value}";
                 }
@@ -1164,7 +1179,7 @@ class Data_Preparer
         return $list;
     }
 
-    private function is_valid($user_input, $pattern)
+    private static function is_valid($user_input, $pattern)
     {
         /**
          * Method that checks user input whether it is safe for database.
@@ -1187,7 +1202,7 @@ class Data_Preparer
          */
         $is_valid = TRUE;
         foreach (array_values($user_input_arr) as $inpt) {
-            if (!$this->is_valid($inpt, $pattern)) {
+            if (!$this::is_valid()is_valid($inpt, $pattern)) {
                 $is_valid = FALSE;
                 break;
             }
