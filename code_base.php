@@ -39,42 +39,6 @@ class Db_Loader
         $this->db_password = $db_password;
     }
 
-    function set_records_per_page($records_per_page)
-    {
-        /**
-         * Sets how many records at max will be displayed at once.
-         * It's used in combination with set_page_number.
-         */
-        $this->records_per_page = $records_per_page;
-    }
-
-    function set_page_number($page_num)
-    {
-        /**
-         * Sets for which page data should be fetched.
-         * It's used in combination with set_records_per_page.
-         */
-        $this->page_num = $page_num;
-    }
-
-    function set_preparer($preparer)
-    {
-        /**
-         * Dependency injection.
-         * Method used to inject preparer class.
-         */
-        $this->prep = $preparer;
-    }
-
-    function set_handler($handler)
-    {
-        /**
-         * Dependency injection.
-         * Method used to inject handler class.
-         */
-        $this->handl = $handler;
-    }
-
     private function get_db_string()
     {
         /**
@@ -137,225 +101,6 @@ class Db_Loader
         return TRUE;
     }
 
-    function perform_action($action, $table_name, $condition=NULL, 
-                            $update_values=NULL, $insert_values=NULL) 
-    {
-        /**
-         * Method that based on $action decides what operation should be performed
-         * 
-         * @param string @action update|delete|add
-         * @param string $condition psql acceptable where condition
-         * @param string $update_values psql acceptable values
-         * @param string $insert_values psql acceptable values
-         * @return void
-         */
-        if ($action == "update") {
-            $this->update_table_row($table_name, $condition, $update_values);
-        } elseif ($action == "delete") {
-            $this->delete_table_row($table_name, $condition);
-        } elseif ($action == "add") {
-            $this->insert_table_row($table_name, $insert_values);
-        }
-    }
-
-    function handle_crud_action($table_name)
-    {
-        /**
-         * Method used to handle crud operation.
-         * 
-         * @param string $table_name
-         * @return void
-         */
-        $action_arr = $this->handl->handle_form();
-        $action = $action_arr[0];
-        $input_data = $action_arr[1];
-        $cond_values = $action_arr[2];
-        if ($action) {
-            if ($this->prep->check_user_input($input_data)) {
-                if ($action == "update") {
-                    $condition = $this->prep->get_query_params($cond_values, "pk");
-                    $update_values = $this->prep->get_query_params($input_data, "up");
-                    $this->perform_action($action, $table_name, $condition, $update_values);
-                } elseif ($action == "delete") {
-                    $condition = $this->prep->get_query_params($input_data, "pk");
-                    $this->perform_action($action, $table_name, $condition);
-                } else {  // insert
-                    $insert_values = $this->prep->get_query_params($input_data, "in");
-                    $this->perform_action($action, $table_name, NULL, NULL, $insert_values);
-                }
-            } else {
-                $err_mess = new Text_Field("Unallowed input.<br>Try again.", "err_mess");
-                $err_mess->create();
-            }
-        }
-    }
-
-    function get_occupied_ids($id_name, $table_name)
-    {
-        /**
-         * Method that return list of occupied ids in table_name.
-         * 
-         * @param string $id_name name of column
-         * @param string $table_name table to perform search
-         * @return array
-         */
-        $query = "SELECT {$id_name}
-                  FROM $table_name;";
-        return $this->run_query($query);
-    }
-
-    function get_unoccupied_id($id_name, $table_name)
-    {
-        /**
-         * Method that returns list of unoccupied ids.
-         * 
-         * @param string $id_name name of column
-         * @param string $table_name table to perform search
-         * @return array
-         */
-        $occupied_ids = $this->get_occupied_ids($id_name, $table_name);
-        $ids_set = [];
-        for ($i=0; $i<count($occupied_ids); $i++) {
-            $ids_set[$occupied_ids[$i][$id_name]] = TRUE;
-        }
-        $found = FALSE;
-        while (!$found) { // to głupie mogłem użyć incrementu.
-            $random_id = rand(1, 999999);
-            if (!array_key_exists($random_id, $ids_set)) {
-                $found = TRUE;
-            }
-        }
-        return $random_id;
-    }
-
-    function register_user($register_data_array)
-    {
-        /**
-         * Method that run query that registers user.
-         * 
-         * @param array $register_data_array data with all required data to register
-         * 
-         * @return bool
-         */
-        $unoccupied_id = $this->get_unoccupied_id("user_id", "users");
-        array_unshift($register_data_array, $unoccupied_id);
-        $values = $this->prep->get_query_params($register_data_array, "in");
-        $is_successful = $this->insert_table_row("users", $values);
-        // is user got registered, creates token that will be stored in cookie to sustain login
-        if ($is_successful) {
-            $token = $this->prep->get_random_token(8);
-            $this->insert_table_row("tokens", $this->prep->get_query_params([$unoccupied_id, $token], "in"));
-        }
-        return $is_successful;
-    }
-
-    function get_token_by_mail($mail)
-    {
-        /**
-         * Method that returns data from token table via mail parameter.
-         * data = [user_id, cookie_token]
-         * 
-         * @param string $mail
-         * @return array
-         */
-        $query = "WITH user_ids as (
-                     SELECT user_id from users where mail = '{$mail}')
-                 SELECT tokens.user_id, cookie_token
-                 FROM tokens, user_ids
-                 where user_ids.user_id = tokens.user_id;";
-        return $this->run_query($query);
-    }
-
-    private function check_login_attempt($login_data, $initial=FALSE)
-    {
-        /**
-         * Method used to verify login attempt.
-         * Works in two ways:
-         * 1) login by mail and password - initial
-         * 2) relogin by cookie: mail and token
-         * 
-         * @param array $login_data array with all required data to check login
-         * @param bool $initial if TRUE it's user login else it's cookie sustaining login
-         *  with token and mail after initial login
-         */
-        $err_mess = "Unallowed input.<br>Try again.";
-        if ($this->prep->check_user_input($login_data, "/^[\w\s.@]+$/") or !$initial) {
-            if ($initial) {  // login with password which will be compared with hashed password in db
-                $password = $login_data["password"];
-                $login_data = ["mail"=>$login_data["mail"]];
-                $condition = $this->prep->get_query_params($login_data, "pk");
-                $results = $this->get_table_contents("users", $condition);
-                $db_password = $results[0]["password"];
-                $is_correct = password_verify($password, $db_password);
-                // second statment is used when password in db in not hashed(test purpose)
-                if ($is_correct or $password == $db_password) {
-                    return [TRUE, $results[0]["user_id"]];
-                }
-            } else { // login with token
-                $token_data = $this->get_token_by_mail($login_data["mail"])[0];
-                $good_token = $token_data["cookie_token"];
-                if ($login_data["cookie_token"] == $good_token) {
-                    return [TRUE, $token_data["user_id"]]; // data[0] is user_id
-                }
-            }
-            $err_mess = "Invalid login information.<br>Try again.";
-        }
-        $err_mess = new Text_Field($err_mess, "err_mess");
-        $err_mess->create();
-        return [FALSE, NULL];
-    }
-
-    function check_admin_status($user_id)
-    {
-        /**
-         * Method that check whether user has admin privileges.
-         * 
-         * @return bool
-         */
-        $condition = $this->prep->get_query_params($user_id, "pk");
-        $results = $this->get_table_contents("staff", $condition);
-        if (is_array($results)) {
-            return TRUE;
-        }
-        return FALSE;
-    }
-
-    function check_user_login_attempt($login_data)
-    {
-        /**
-         * Method that check whether user should be able to login
-         * 
-         * @param array $login_data
-         * @return array
-         */
-        $login_data_out = $this->check_login_attempt($login_data, TRUE);
-        $is_successful_login = $login_data_out[0];
-        if ($is_successful_login) {
-            $user_id = $login_data_out[1];
-            $is_admin = $this->check_admin_status(["user_id" => $user_id]);
-        }
-        return [$is_successful_login, $is_admin];
-    }
-
-    function check_login_status($cookie)
-    {
-        /**
-         * Method that check whether cookie should log user in
-         * 
-         * @param array $cookie
-         * @return array
-         */
-        if (isset($cookie["cookie_token"])) {
-            $login_data_out = $this->check_login_attempt($cookie);
-            $is_successful_login = $login_data_out[0];
-            if ($is_successful_login) {
-                $user_id = $login_data_out[1];
-                $is_admin = $this->check_admin_status(["user_id" => $user_id]);
-            }
-        }
-        return [$is_successful_login, $is_admin];
-    }
-
     function test_conn()
     {
         // Method that prints out information about connection status.
@@ -366,254 +111,6 @@ class Db_Loader
             echo "Connection failed";
         }
         $conn = NULL;
-    }
-}
-
-class Query_Runer
-/**
- * Class used to assemble and run queries on database.
- */
-{
-    private $loader;
-
-    function set_loader($loader)
-    {
-        /**
-         * Dependency injection.
-         * Method used to inject loader class.
-         */
-        $this->loader = $loader;
-    }
-
-    function set_preparer($preparer)
-    {
-        /**
-         * Dependency injection.
-         * Method used to inject preparer class.
-         */
-        $this->prep = $preparer;
-    }
-
-    function get_table_names()
-    {
-        /**
-         * Method used to return all table names in database.
-         * 
-         * @return array|bool
-         */
-        $query = new Psql_Query_Select();
-        $query->set_preparer($this->prep);
-        
-        $query->set_select_statement(["table_name"]);
-        $query->set_from_statement(["information_schema.tables"]);
-        $query->set_where_statement([
-            "table_schema"=>$this->loader->get_schema_name(),
-            "table_type"=>"BASE TABLE"]);
-        
-        $data = $this->loader->run_query($query->get_query());
-
-        $table_names = [];
-        for ($i=0; $i<count($data); $i++) {
-            array_push($table_names, $data[$i]["table_name"]);
-        }
-        return $table_names;
-    }
-
-    function get_table_row_amount($table_name)
-    {
-        /**
-         * Method used to return amount of rows in a given table
-         * 
-         * @return integer|bool
-         */
-        $query = new Psql_Query_Select();
-        $query->set_preparer($this->prep);
-
-        $query->set_select_statement(["count(*)"]);
-        $query->set_from_statement([$table_name]);
-
-        $data = $this->loader->run_query($query->get_query());
-        return $data[0]["count"];
-    }
-
-    function get_column_names($table_name)
-    {
-        /**
-         * Method that returns column names in a given table.
-         * 
-         * @return array|bool
-         */
-        $query = new Psql_Query_Select();
-        $query->set_preparer($this->prep);
-
-        $query->set_select_statement(["column_name"]);
-        $query->set_from_statement(["INFORMATION_SCHEMA.COLUMNS"]);
-        $query->set_where_statement([
-            "table_name"=>$table_name,
-            "table_schema"=>$this->loader->get_schema_name()]);
-
-        $data = $this->loader->run_query($query->get_query());
-
-        $column_names = [];
-        for ($i=0;$i<count($data);$i++) {
-            array_push($column_names, $data[$i]["column_name"]);
-        }
-        return $column_names;
-    }
-
-    function get_primary_key_names()
-    {
-        /**
-         * Method that returns key(table_name)=>value(set of primary key names)
-         * 
-         * @return array|bool
-         */
-        $query = new Psql_Query_Select();
-        $query->set_preparer($this->prep);
-
-        $query->set_select_statement([
-            "conrelid::regclass AS table_name",
-            "conname AS primary_key", 
-            "pg_get_constraintdef(oid)"]);
-        $query->set_from_statement(["pg_constraint"]);
-        $query->set_where_statement([
-            "contype"=>"p",
-            "connamespace"=>[$this->loader->get_schema_name(), "::regnamespace"]]);
-
-        $data = $this->loader->run_query($query->get_query());
-        $out = [];
-        // output is a bit complicated, that's why regex is used.
-        foreach ($data as $row) {
-            $val = $row["pg_get_constraintdef"];
-            preg_match("/\((.*)\)/", $val, $matches);
-            $pk_list = explode(", ", $matches[1]);
-            $pk_set = [];
-            foreach ($pk_list as $el) {
-                $pk_set[$el] = TRUE;
-            }
-            $out[$row["table_name"]] = $pk_set;
-        }
-        return $out;
-    }
-
-    function get_table_contents($column_names, $table_names, $condition_arr=NULL,
-                                $is_distinct=FALSE, $page_num=NULL, $records_per_page=NULL)
-    {
-        /**
-         * Method used to run select query.
-         * 
-         * @param array $column_names list of columns which contents will be returned
-         * @param array $table_names list of tables from which rows will be selected
-         * @param array $condition_arr key(column_name)=>value(column_value) array
-         * @param bool $is_distinct determines whether distnict values will be returned
-         * @param integer $page_num data for pagination
-         * @param integer $records_per_page data for pagination
-         * @return array|bool
-         */
-        $query = new Psql_Query_Select($is_distinct, $page_num, $records_per_page);
-        $query->set_preparer($this->prep);
-
-        $query->set_select_statement($column_names);
-        $query->set_from_statement($table_names);
-        if (!is_null($condition_arr)) {
-            $query->set_where_statement($condition_arr);
-        }
-        $data = $this->loader->run_query($query->get_query());
-        return $data;
-    }
-
-    function get_table_contents_sq($column_names, $table_names, $condition_arr, 
-                                   $sq_column_names, $sq_table_names, $sq_condition_arr, 
-                                   $is_distinct=FALSE, $page_num=NULL, $records_per_page=NULL)
-    {
-        /**
-         * Method used to run psql select with single subquery.
-         * 
-         * @param array $column_name
-         * @param array $table_names
-         * @param array $sq_column_names
-         * @param array $sq_table_names
-         * @param array $sq_condition_arr
-         * @param bool $is_distinct
-         * @param integer $page_num
-         * @param integer $records_per_page
-         * @return array|bool
-         */
-        $query = new Psql_Query_Select_Sq($is_distinct, $page_num, $records_per_page);
-        $query->set_preparer($this->prep);
-
-        $query->set_select_statement($column_names);
-        $query->set_from_statement($table_names);
-        if (!is_null($condition_arr)) {
-            $query->set_where_statement($condition_arr);
-        }
-
-        $query->set_sq_select_statement($sq_column_names);
-        $query->set_sq_from_statement($sq_table_names);
-        if (!is_null($sq_condition_arr)) {
-            $query->set_sq_where_statement($sq_condition_arr);
-        }
-        $data = $this->loader->run_query($query->get_query());
-        return $data;
-    }
-
-    function insert_table_row($table_names, $values)
-    {
-        /**
-         * Method used to run psql insert query.
-         * 
-         * @param array $table_names
-         * @param array $values
-         * @return bool
-         */
-        $query = new Psql_Query_Insert();
-        $query->set_preparer($this->prep);
-
-        $query->set_where_statement($table_names);
-        $query->set_insert_statement($values);
-
-        $data = $this->loader->run_query($query->get_query());
-        return $data;
-    }
-
-    function update_table_row($update_values, $table_names, $condition_arr)
-    {
-        /**
-         * Method used to run psql update query.
-         * 
-         * @param array $update_values
-         * @param array $table_names
-         * @param array $condition_arr
-         * @return bool
-         */
-        $query = new Psql_Query_Update();
-        $query->set_preparer($this->prep);
-
-        $query->set_update_statement($update_values);
-        $query->set_from_statement($table_names);
-        $query->set_where_statement($condition_arr);
-
-        $data = $this->loader->run_query($query->get_query());
-        return $data;
-    }
-
-    function delete_table_row($table_names, $condition_arr)
-    {
-        /**
-         * Method used to run psql delete query.
-         * 
-         * @param array $table_names
-         * @param array $condition_arr
-         * @return bool
-         */
-        $query = new Psql_Query_Delete();
-        $query->set_preparer($this->prep);
-
-        $query->set_from_statement($table_names);
-        $query->set_where_statement($condition_arr);
-
-        $data = $this->loader->run_query($query->get_query());
-        return $data;
     }
 }
 
@@ -962,7 +459,495 @@ class Psql_Query_Select_Sq extends Psql_Query_Select
     }
 }
 
-class Data_Handler
+class Query_Runner
+/**
+ * Class used to assemble and run queries on database.
+ */
+{
+    private $loader;
+
+    function set_loader($loader)
+    {
+        /**
+         * Dependency injection.
+         * Method used to inject loader class.
+         */
+        $this->loader = $loader;
+    }
+
+    function set_preparer($preparer)
+    {
+        /**
+         * Dependency injection.
+         * Method used to inject preparer class.
+         */
+        $this->prep = $preparer;
+    }
+
+    function get_table_names()
+    {
+        /**
+         * Method used to return all table names in database.
+         * 
+         * @return array|bool
+         */
+        $query = new Psql_Query_Select();
+        $query->set_preparer($this->prep);
+        
+        $query->set_select_statement(["table_name"]);
+        $query->set_from_statement(["information_schema.tables"]);
+        $query->set_where_statement([
+            "table_schema"=>$this->loader->get_schema_name(),
+            "table_type"=>"BASE TABLE"]);
+        
+        $data = $this->loader->run_query($query->get_query());
+
+        $table_names = [];
+        for ($i=0; $i<count($data); $i++) {
+            array_push($table_names, $data[$i]["table_name"]);
+        }
+        return $table_names;
+    }
+
+    function get_table_row_amount($table_name)
+    {
+        /**
+         * Method used to return amount of rows in a given table
+         * 
+         * @return integer|bool
+         */
+        $query = new Psql_Query_Select();
+        $query->set_preparer($this->prep);
+
+        $query->set_select_statement(["count(*)"]);
+        $query->set_from_statement([$table_name]);
+
+        $data = $this->loader->run_query($query->get_query());
+        return $data[0]["count"];
+    }
+
+    function get_column_names($table_name)
+    {
+        /**
+         * Method that returns column names in a given table.
+         * 
+         * @return array|bool
+         */
+        $query = new Psql_Query_Select();
+        $query->set_preparer($this->prep);
+
+        $query->set_select_statement(["column_name"]);
+        $query->set_from_statement(["INFORMATION_SCHEMA.COLUMNS"]);
+        $query->set_where_statement([
+            "table_name"=>$table_name,
+            "table_schema"=>$this->loader->get_schema_name()]);
+
+        $data = $this->loader->run_query($query->get_query());
+
+        $column_names = [];
+        for ($i=0;$i<count($data);$i++) {
+            array_push($column_names, $data[$i]["column_name"]);
+        }
+        return $column_names;
+    }
+
+    function get_primary_key_names()
+    {
+        /**
+         * Method that returns key(table_name)=>value(set of primary key names)
+         * 
+         * @return array|bool
+         */
+        $query = new Psql_Query_Select();
+        $query->set_preparer($this->prep);
+
+        $query->set_select_statement([
+            "conrelid::regclass AS table_name",
+            "conname AS primary_key", 
+            "pg_get_constraintdef(oid)"]);
+        $query->set_from_statement(["pg_constraint"]);
+        $query->set_where_statement([
+            "contype"=>"p",
+            "connamespace"=>[$this->loader->get_schema_name(), "::regnamespace"]]);
+
+        $data = $this->loader->run_query($query->get_query());
+        $out = [];
+        // output is a bit complicated, that's why regex is used.
+        foreach ($data as $row) {
+            $val = $row["pg_get_constraintdef"];
+            preg_match("/\((.*)\)/", $val, $matches);
+            $pk_list = explode(", ", $matches[1]);
+            $pk_set = [];
+            foreach ($pk_list as $el) {
+                $pk_set[$el] = TRUE;
+            }
+            $out[$row["table_name"]] = $pk_set;
+        }
+        return $out;
+    }
+
+    function get_table_contents($column_names, $table_names, $condition_arr=NULL,
+                                $is_distinct=FALSE, $page_num=NULL, $records_per_page=NULL)
+    {
+        /**
+         * Method used to run select query.
+         * 
+         * @param array $column_names list of columns which contents will be returned
+         * @param array $table_names list of tables from which rows will be selected
+         * @param array $condition_arr key(column_name)=>value(column_value) array
+         * @param bool $is_distinct determines whether distnict values will be returned
+         * @param integer $page_num data for pagination
+         * @param integer $records_per_page data for pagination
+         * @return array|bool
+         */
+        $query = new Psql_Query_Select($is_distinct, $page_num, $records_per_page);
+        $query->set_preparer($this->prep);
+
+        $query->set_select_statement($column_names);
+        $query->set_from_statement($table_names);
+        if (!is_null($condition_arr)) {
+            $query->set_where_statement($condition_arr);
+        }
+        $data = $this->loader->run_query($query->get_query());
+        return $data;
+    }
+
+    function get_table_contents_sq($column_names, $table_names, $condition_arr, 
+                                   $sq_column_names, $sq_table_names, $sq_condition_arr, $sq_name=NULL,
+                                   $is_distinct=FALSE, $page_num=NULL, $records_per_page=NULL)
+    {
+        /**
+         * Method used to run psql select with single subquery.
+         * 
+         * @param array $column_name
+         * @param array $table_names
+         * @param array $sq_column_names
+         * @param array $sq_table_names
+         * @param array $sq_condition_arr
+         * @param bool $is_distinct
+         * @param integer $page_num
+         * @param integer $records_per_page
+         * @return array|bool
+         */
+        $query = new Psql_Query_Select_Sq($is_distinct, $page_num, $records_per_page);
+        $query->set_preparer($this->prep);
+
+        if (!is_null($sq_name)) {
+            $query->set_sub_query_name($sq_name);
+        }
+
+        $query->set_select_statement($column_names);
+        $query->set_from_statement($table_names);
+        if (!is_null($condition_arr)) {
+            $query->set_where_statement($condition_arr);
+        }
+
+        $query->set_sq_select_statement($sq_column_names);
+        $query->set_sq_from_statement($sq_table_names);
+        if (!is_null($sq_condition_arr)) {
+            $query->set_sq_where_statement($sq_condition_arr);
+        }
+        $data = $this->loader->run_query($query->get_query());
+        return $data;
+    }
+
+    function insert_table_row($table_names, $values)
+    {
+        /**
+         * Method used to run psql insert query.
+         * 
+         * @param array $table_names
+         * @param array $values
+         * @return bool
+         */
+        $query = new Psql_Query_Insert();
+        $query->set_preparer($this->prep);
+
+        $query->set_where_statement($table_names);
+        $query->set_insert_statement($values);
+
+        $data = $this->loader->run_query($query->get_query());
+        return $data;
+    }
+
+    function update_table_row($update_values, $table_names, $condition_arr)
+    {
+        /**
+         * Method used to run psql update query.
+         * 
+         * @param array $update_values
+         * @param array $table_names
+         * @param array $condition_arr
+         * @return bool
+         */
+        $query = new Psql_Query_Update();
+        $query->set_preparer($this->prep);
+
+        $query->set_update_statement($update_values);
+        $query->set_from_statement($table_names);
+        $query->set_where_statement($condition_arr);
+
+        $data = $this->loader->run_query($query->get_query());
+        return $data;
+    }
+
+    function delete_table_row($table_names, $condition_arr)
+    {
+        /**
+         * Method used to run psql delete query.
+         * 
+         * @param array $table_names
+         * @param array $condition_arr
+         * @return bool
+         */
+        $query = new Psql_Query_Delete();
+        $query->set_preparer($this->prep);
+
+        $query->set_from_statement($table_names);
+        $query->set_where_statement($condition_arr);
+
+        $data = $this->loader->run_query($query->get_query());
+        return $data;
+    }
+}
+
+class Login_handler
+{
+    private $user_login_data;
+    private $cookie_data;
+    private $is_logged;
+    private $is_admin;
+
+    function __construct($login_data, $is_cookie=FALSE)
+    {
+        if ($is_cookie) {
+            $this->cookie_data = $login_data;
+        } else {
+            $this->user_login_data = $login_data;
+        }
+
+        $login_status = $this->check_login_attempt();
+        $this->is_logged = $login_status[0];
+        $this->is_admin = $login_status[1];
+    }
+
+    function set_handler($handler)
+    {
+        /**
+         * Dependency injection.
+         * Method used to inject handler class.
+         */
+        $this->handl = $handler;
+    }
+
+    function set_runner($runner)
+    {
+        /**
+         * Dependency injection.
+         * Method used to inject runner class.
+         */
+        $this->run = $runner;
+    }
+
+    function is_logged()
+    {
+        return $this->is_logged;
+    }
+
+    function is_admin()
+    {
+        return $this->is_admin();
+    }
+
+    private function get_token_by_mail($mail)
+    {
+        /**
+         * Method that returns data from token table via mail parameter.
+         * data = [user_id, cookie_token]
+         * 
+         * @param string $mail
+         * @return array
+         */
+        $data = $this->run->get_table_contents_sq(
+            ["tokens.user_id", "cookie_token"], 
+            ["tokens", "user_ids"],
+            ["user_ids.user_id"=>"tokens.user_id"],
+            ["user_id"],
+            ["users"],
+            ["mail"=>$mail],
+            "user_ids");
+        return $data[0];
+    }
+
+    private function check_admin_status($user_id)
+    {
+        /**
+         * Method that check whether user has admin privileges.
+         * 
+         * @return bool
+         */
+        $results = $this->run->get_table_contents(["*"], ["staff"], ["user_id"=>$user_id]);
+        if (is_array($results)) {
+            return TRUE;
+        }
+        return FALSE;
+    }
+
+    private function check_login_attempt()
+    {
+        /**
+         * Method used to verify login attempt.
+         * Works in two ways:
+         * 1) login by mail and password - initial
+         * 2) relogin by cookie: mail and token
+         * 
+         * @return
+         */
+        $err_mess = "Invalid login information.<br>Try again.";
+        // login with password which will be compared with hashed password in db
+        if (isset($this->user_login_data)) {
+            // check whether data is in acceptable format
+            if ($this->prep->check_user_input($this->user_login_data, "/^[\w\s.@]+$/")) {
+                $password = $this->user_login_data["password"];
+                // get user_id and hashed password by mail
+                $results = $this->run->get_table_contents(["*"], ["users"], ["mail"=>$this->user_login_data["mail"]])[0];
+                $db_password = $results["password"];
+                $is_correct = password_verify($password, $db_password);
+                // second statment is used when password in db in not hashed(test purpose)
+                if ($is_correct or $password == $db_password) {
+                    return [TRUE, $this->check_admin_status($results["user_id"])];
+                }
+            } else {
+                $err_mess = "Unallowed input.<br>Try again.";
+            }
+        } elseif (isset($this->cookie_data)) { // login with token
+            $token_data = $this->get_token_by_mail($this->cookie_data["mail"]);
+            if ($this->cookie_data["cookie_token"] == $token_data["cookie_token"]) {
+                return [TRUE, $this->check_admin_status($token_data["user_id"])]; // data[0] is user_id
+            }
+        }
+        $err_mess = new Text_Field($err_mess, "err_mess");
+        $err_mess->create();
+        return [FALSE, FALSE];
+    }
+}
+
+class Shop_Handler
+{
+    function get_occupied_ids($id_name, $table_name)
+    {
+        /**
+         * Method that return list of occupied ids in table_name.
+         * 
+         * @param string $id_name name of column
+         * @param string $table_name table to perform search
+         * @return array
+         */
+        $query = "SELECT {$id_name}
+                  FROM $table_name;";
+        return $this->run_query($query);
+    }
+
+    function get_unoccupied_id($id_name, $table_name)
+    {
+        /**
+         * Method that returns list of unoccupied ids.
+         * 
+         * @param string $id_name name of column
+         * @param string $table_name table to perform search
+         * @return array
+         */
+        $occupied_ids = $this->get_occupied_ids($id_name, $table_name);
+        $ids_set = [];
+        for ($i=0; $i<count($occupied_ids); $i++) {
+            $ids_set[$occupied_ids[$i][$id_name]] = TRUE;
+        }
+        $found = FALSE;
+        while (!$found) { // to głupie mogłem użyć incrementu.
+            $random_id = rand(1, 999999);
+            if (!array_key_exists($random_id, $ids_set)) {
+                $found = TRUE;
+            }
+        }
+        return $random_id;
+    }
+
+    function register_user($register_data_array)
+    {
+        /**
+         * Method that run query that registers user.
+         * 
+         * @param array $register_data_array data with all required data to register
+         * 
+         * @return bool
+         */
+        $unoccupied_id = $this->get_unoccupied_id("user_id", "users");
+        array_unshift($register_data_array, $unoccupied_id);
+        $values = $this->prep->get_query_params($register_data_array, "in");
+        $is_successful = $this->insert_table_row("users", $values);
+        // is user got registered, creates token that will be stored in cookie to sustain login
+        if ($is_successful) {
+            $token = $this->prep->get_random_token(8);
+            $this->insert_table_row("tokens", $this->prep->get_query_params([$unoccupied_id, $token], "in"));
+        }
+        return $is_successful;
+    }
+}
+
+class Crud_Handler
+{   
+    private $handl;
+    private $run;
+
+    function set_handler($handler)
+    {
+        /**
+         * Dependency injection.
+         * Method used to inject handler class.
+         */
+        $this->handl = $handler;
+    }
+
+    function set_runner($runner)
+    {
+        /**
+         * Dependency injection.
+         * Method used to inject runner class.
+         */
+        $this->run = $runner;
+    }
+
+    function handle_crud_action()
+    {
+        /**
+         * Method used to handle crud operation.
+         * 
+         * @param string $table_name
+         * @return void
+         */
+        $action_arr = $this->handl->handle_form();
+        $action = $action_arr[0];
+        $user_input_arr = $action_arr[1];  // data provided by user, usually in text form.
+        $hidden_data_arr = $action_arr[2];  // primary keys used in creating where statement.
+        if ($action) {
+            if ($this->prep->check_user_input($user_input_arr)) {
+                $table_name = $this->handl->get_post_arg("table_name");
+                if ($action == "update") {
+                    $this->run->update_table_row($user_input_arr, $table_name, $hidden_data_arr);
+                } elseif ($action == "delete") {
+                    $this->run->delete_table_row($table_name, $hidden_data_arr);
+                } else {  // insert
+                    $this->run->insert_table_row($table_name, $user_input_arr);
+                }
+            } else {
+                $err_mess = new Text_Field("Unallowed input.<br>Try again.", "err_mess");
+                $err_mess->create();
+            }
+        }
+    }
+}
+
+class Post_Data_Handler
 /**
  * Class used to fetch and process post data.
  */
@@ -1024,14 +1009,15 @@ class Data_Handler
          * @return integer
          */
         $iden_amount = $this->get_identified_data_amount();
-        return count($this->post_data) - 1 - $iden_amount - $this->predef_par_amount;
+        return count($this->post_data) -1 - $iden_amount - $this->predef_par_amount;
     }
 
     function get_colective_data()
     {
         /**
          * Method that returns key-value array made purely of data which is not 
-         * identidied data nor predef
+         * identidied data nor predef.
+         * This is usually text form|multichoice btns form| radio form data.
          * 
          * @return array
          */
@@ -1046,11 +1032,12 @@ class Data_Handler
     {
         /**
          * Method that return key-value array made of purely identified data from post.
+         * This is usually hidden data.
          * 
          * @return array
          */
-        $identified_data_start = - $this->predef_par_amount - $this->get_identified_data_amount() - 1;
-        $identified_data = array_slice($this->post_data, $identified_data_start, -$this->predef_par_amount-1);
+        $identified_data_start = - $this->predef_par_amount - $this->get_identified_data_amount() -1;
+        $identified_data = array_slice($this->post_data, $identified_data_start, -$this->predef_par_amount -1);
         $unidentified_data = [];
         foreach ($identified_data as $k=>$v) {
             $unidentified_data[explode("-", $k)[1]] = $v;
