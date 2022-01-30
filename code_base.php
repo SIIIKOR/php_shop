@@ -98,7 +98,17 @@ class Db_Loader
         return $conn;
     }
 
-    private function run_query($query)
+    function get_schema_name()
+    {
+        /**
+         * Method that returns schema_name of the database.
+         * 
+         * @return string
+         */
+        return $this->schema_name;
+    }
+
+    function run_query($query)
     {
         /**
          * Method that runs query on a given table from given database.
@@ -125,184 +135,6 @@ class Db_Loader
             return $data;
         }
         return TRUE;
-    }
-
-    function get_table_names()
-    {
-        /**
-         * Method that returns table names from database. 
-         * Safe.
-         * 
-         * @return array
-         */
-        $query = "SELECT table_name
-                    FROM information_schema.tables
-                    WHERE table_schema='{$this->schema_name}'
-                    AND table_type='BASE TABLE';";
-        $data = $this->run_query($query);
-        $out = [];
-        foreach ($data as $row) {
-            foreach ($row as $el) {
-                array_push($out, $el);
-            }
-        }
-        return $out;
-    }
-
-    function get_table_row_amount($table_name)
-    {
-        /**
-         * Method that returns row count input a given table.
-         * Safe.
-         * 
-         * @param string $table_name
-         * @return int
-         */
-        $query = "SELECT count(*)
-                  FROM {$table_name}";
-        $data = $this->run_query($query);
-        return array_values($data[0])[0];
-    }
-
-    function get_col_names($table_name)
-    {
-        /**
-         * Method that returns row names from a given table.
-         * Sage.
-         * 
-         * @param string $table_name
-         * @return array
-         */
-        $query = "SELECT column_name
-                  FROM INFORMATION_SCHEMA.COLUMNS
-                  WHERE TABLE_NAME = '{$table_name}'
-                  AND table_schema='{$this->schema_name}';";
-        $data = $this->run_query($query);
-        $out = [];
-        foreach ($data as $d) {
-            array_push($out, $d["column_name"]);
-        }
-        return $out;
-    }
-
-    function get_primary_key_names()
-    {
-        /**
-         * Method that returns table primary key names.
-         * Safe.
-         * 
-         * @return array
-         */
-        $query = "SELECT conrelid::regclass AS table_name,
-                            conname AS primary_key,
-                            pg_get_constraintdef(oid)
-                  FROM   pg_constraint
-                  WHERE  contype = 'p'
-                  AND    connamespace = '{$this->schema_name}'::regnamespace
-                  ORDER  BY conrelid::regclass::text, contype DESC;";
-        $data = $this->run_query($query);
-        $out = [];
-        // output is a bit complicated, that's why regex is used.
-        foreach ($data as $row) {
-            $val = $row["pg_get_constraintdef"];
-            preg_match("/\((.*)\)/", $val, $matches);
-            $pk_list = explode(", ", $matches[1]);
-            $pk_set = [];
-            foreach ($pk_list as $el) {
-                $pk_set[$el] = TRUE;
-            }
-            $out[$row["table_name"]] = $pk_set;
-        }
-        return $out;
-    }
-
-    function get_table_contents($table_name, $condition=NULL, $col_names="*", 
-                           $distinct=FALSE, $page_num=NULL, $records_per_page=NULL)
-    {
-        /**
-         * Method used to create and run queries that are used to select records
-         * from a given table.
-         * 
-         * @param string $table_name
-         * @param string $condition psql format condition, usualy prepered by special method
-         * @param string|array $col_names array or string that specifies which columns to select
-         * @param bool $distinct defines whether selection should be distinct or not
-         * @param integer $page_num
-         * @param integer $records_per_page
-         * @return bool|array
-         */
-        $col_name = $col_names;
-        if (is_array($col_names)) {
-            $selection_str = "";
-            $i = 0;
-            foreach ($col_names as $name) {
-                if ($i == 0) {
-                    $selection_str .= "$name";
-                } else {
-                    $selection_str .= ", $name";
-                }
-                $i++;
-            }
-            $col_name = $selection_str;
-        }
-        if ($distinct) {
-            $selection = "SELECT DISTINCT {$col_name}";
-        } else {
-            $selection = "SELECT {$col_name}";
-        }
-        $query = "{$selection} FROM {$table_name}";
-        if (!is_null($condition)) {
-            $query .= " WHERE {$condition}";
-        }
-        if (!is_null($records_per_page)) {
-            $offset = 0 + ($page_num) * $records_per_page;
-            $query .= " LIMIT {$records_per_page} OFFSET {$offset}";
-        }
-        $query .= ";";
-        return $this->run_query($query);
-    }
-
-    private function insert_table_row($table_name, $values)
-    {
-        /**
-         * Method used to insert record into given table.
-         * 
-         * @param string $table_name
-         * @param string $values psql acceptable values
-         * @return bool
-         */
-        $query = "INSERT INTO {$table_name}
-                  VALUES {$values};";
-        return $this->run_query($query);
-    }
-
-    private function update_table_row($table_name, $condition, $values)
-    {
-        /**
-         * Method used to udpate record in given table.
-         * 
-         * @param string $table_name
-         * @param string $condition psql acceptable where condition
-         * @return bool
-         */
-        $query = "UPDATE {$table_name}
-                  SET {$values}
-                  WHERE {$condition};";
-        return $this->run_query($query);
-    }
-
-    private function delete_table_row($table_name, $condition)
-    {
-        /**
-         * Method used to delete record in given table.
-         * 
-         * @param string $table_name
-         * @param string $condition psql acceptable where condition
-         * @return bool
-         */
-        $query = "DELETE FROM $table_name
-                  WHERE {$condition};";
-        return $this->run_query($query);
     }
 
     function perform_action($action, $table_name, $condition=NULL, 
@@ -524,48 +356,6 @@ class Db_Loader
         return [$is_successful_login, $is_admin];
     }
 
-    private function get_table_contents_with($selection, $table_name, $condition, $with_selection, $with_condition, $page_num, $records_per_page)
-    {
-        $query = "WITH prod_ids as (
-            SELECT {$with_selection} FROM {$table_name} WHERE {$with_condition}
-            )
-            SELECT {$selection}
-            FROM product_groups, products, prod_ids
-            WHERE {$condition}";
-        if ($records_per_page) {
-            $offset = 0 + ($page_num) * $records_per_page;
-            $query .= " LIMIT {$records_per_page} OFFSET {$offset}";
-        }
-        $query .= ";";
-        return $this->run_query($query);
-    }
-
-    function get_cart_contents($user_id, $table_name, $count=FALSE, $page_num=NULL, $records_per_page=NULL)
-    {
-        if ($table_name == "cart") {
-            $with_sel = "product_id";
-            $selection = "products.product_id, product_name, price, category_name, description";
-        } elseif ($table_name == "orders") {
-            $with_sel = "product_id, order_placed_date";
-            $selection = "products.product_id, product_name, category_name, price, order_placed_date";
-        } if ($count) {
-            $selection = "COUNT(*)";
-        }
-        $query = "WITH prod_ids as (
-            SELECT {$with_sel} FROM {$table_name} WHERE user_id = {$user_id}
-            )
-            SELECT {$selection}
-            FROM product_groups, products, prod_ids
-            WHERE prod_ids.product_id = products.product_id
-             and products.group_id = product_groups.group_id";
-        if ($records_per_page) {
-            $offset = 0 + ($page_num) * $records_per_page;
-            $query .= " LIMIT {$records_per_page} OFFSET {$offset}";
-        }
-        $query .= ";";
-        return $this->run_query($query);
-    }
-
     function test_conn()
     {
         // Method that prints out information about connection status.
@@ -576,6 +366,254 @@ class Db_Loader
             echo "Connection failed";
         }
         $conn = NULL;
+    }
+}
+
+class Query_Runer
+/**
+ * Class used to assemble and run queries on database.
+ */
+{
+    private $loader;
+
+    function set_loader($loader)
+    {
+        /**
+         * Dependency injection.
+         * Method used to inject loader class.
+         */
+        $this->loader = $loader;
+    }
+
+    function set_preparer($preparer)
+    {
+        /**
+         * Dependency injection.
+         * Method used to inject preparer class.
+         */
+        $this->prep = $preparer;
+    }
+
+    function get_table_names()
+    {
+        /**
+         * Method used to return all table names in database.
+         * 
+         * @return array|bool
+         */
+        $query = new Psql_Query_Select();
+        $query->set_preparer($this->prep);
+        
+        $query->set_select_statement(["table_name"]);
+        $query->set_from_statement(["information_schema.tables"]);
+        $query->set_where_statement([
+            "table_schema"=>$this->loader->get_schema_name(),
+            "table_type"=>"BASE TABLE"]);
+        
+        $data = $this->loader->run_query($query->get_query());
+
+        $table_names = [];
+        for ($i=0; $i<count($data); $i++) {
+            array_push($table_names, $data[$i]["table_name"]);
+        }
+        return $table_names;
+    }
+
+    function get_table_row_amount($table_name)
+    {
+        /**
+         * Method used to return amount of rows in a given table
+         * 
+         * @return integer|bool
+         */
+        $query = new Psql_Query_Select();
+        $query->set_preparer($this->prep);
+
+        $query->set_select_statement(["count(*)"]);
+        $query->set_from_statement([$table_name]);
+
+        $data = $this->loader->run_query($query->get_query());
+        return $data[0]["count"];
+    }
+
+    function get_column_names($table_name)
+    {
+        /**
+         * Method that returns column names in a given table.
+         * 
+         * @return array|bool
+         */
+        $query = new Psql_Query_Select();
+        $query->set_preparer($this->prep);
+
+        $query->set_select_statement(["column_name"]);
+        $query->set_from_statement(["INFORMATION_SCHEMA.COLUMNS"]);
+        $query->set_where_statement([
+            "table_name"=>$table_name,
+            "table_schema"=>$this->loader->get_schema_name()]);
+
+        $data = $this->loader->run_query($query->get_query());
+
+        $column_names = [];
+        for ($i=0;$i<count($data);$i++) {
+            array_push($column_names, $data[$i]["column_name"]);
+        }
+        return $column_names;
+    }
+
+    function get_primary_key_names()
+    {
+        /**
+         * Method that returns key(table_name)=>value(set of primary key names)
+         * 
+         * @return array|bool
+         */
+        $query = new Psql_Query_Select();
+        $query->set_preparer($this->prep);
+
+        $query->set_select_statement([
+            "conrelid::regclass AS table_name",
+            "conname AS primary_key", 
+            "pg_get_constraintdef(oid)"]);
+        $query->set_from_statement(["pg_constraint"]);
+        $query->set_where_statement([
+            "contype"=>"p",
+            "connamespace"=>[$this->loader->get_schema_name(), "::regnamespace"]]);
+
+        $data = $this->loader->run_query($query->get_query());
+        $out = [];
+        // output is a bit complicated, that's why regex is used.
+        foreach ($data as $row) {
+            $val = $row["pg_get_constraintdef"];
+            preg_match("/\((.*)\)/", $val, $matches);
+            $pk_list = explode(", ", $matches[1]);
+            $pk_set = [];
+            foreach ($pk_list as $el) {
+                $pk_set[$el] = TRUE;
+            }
+            $out[$row["table_name"]] = $pk_set;
+        }
+        return $out;
+    }
+
+    function get_table_contents($column_names, $table_names, $condition_arr=NULL,
+                                $is_distinct=FALSE, $page_num=NULL, $records_per_page=NULL)
+    {
+        /**
+         * Method used to run select query.
+         * 
+         * @param array $column_names list of columns which contents will be returned
+         * @param array $table_names list of tables from which rows will be selected
+         * @param array $condition_arr key(column_name)=>value(column_value) array
+         * @param bool $is_distinct determines whether distnict values will be returned
+         * @param integer $page_num data for pagination
+         * @param integer $records_per_page data for pagination
+         * @return array|bool
+         */
+        $query = new Psql_Query_Select($is_distinct, $page_num, $records_per_page);
+        $query->set_preparer($this->prep);
+
+        $query->set_select_statement($column_names);
+        $query->set_from_statement($table_names);
+        if (!is_null($condition_arr)) {
+            $query->set_where_statement($condition_arr);
+        }
+        $data = $this->loader->run_query($query->get_query());
+        return $data;
+    }
+
+    function get_table_contents_sq($column_names, $table_names, $condition_arr, 
+                                   $sq_column_names, $sq_table_names, $sq_condition_arr, 
+                                   $is_distinct=FALSE, $page_num=NULL, $records_per_page=NULL)
+    {
+        /**
+         * Method used to run psql select with single subquery.
+         * 
+         * @param array $column_name
+         * @param array $table_names
+         * @param array $sq_column_names
+         * @param array $sq_table_names
+         * @param array $sq_condition_arr
+         * @param bool $is_distinct
+         * @param integer $page_num
+         * @param integer $records_per_page
+         * @return array|bool
+         */
+        $query = new Psql_Query_Select_Sq($is_distinct, $page_num, $records_per_page);
+        $query->set_preparer($this->prep);
+
+        $query->set_select_statement($column_names);
+        $query->set_from_statement($table_names);
+        if (!is_null($condition_arr)) {
+            $query->set_where_statement($condition_arr);
+        }
+
+        $query->set_sq_select_statement($sq_column_names);
+        $query->set_sq_from_statement($sq_table_names);
+        if (!is_null($sq_condition_arr)) {
+            $query->set_sq_where_statement($sq_condition_arr);
+        }
+        $data = $this->loader->run_query($query->get_query());
+        return $data;
+    }
+
+    function insert_table_row($table_names, $values)
+    {
+        /**
+         * Method used to run psql insert query.
+         * 
+         * @param array $table_names
+         * @param array $values
+         * @return bool
+         */
+        $query = new Psql_Query_Insert();
+        $query->set_preparer($this->prep);
+
+        $query->set_where_statement($table_names);
+        $query->set_insert_statement($values);
+
+        $data = $this->loader->run_query($query->get_query());
+        return $data;
+    }
+
+    function update_table_row($update_values, $table_names, $condition_arr)
+    {
+        /**
+         * Method used to run psql update query.
+         * 
+         * @param array $update_values
+         * @param array $table_names
+         * @param array $condition_arr
+         * @return bool
+         */
+        $query = new Psql_Query_Update();
+        $query->set_preparer($this->prep);
+
+        $query->set_update_statement($update_values);
+        $query->set_from_statement($table_names);
+        $query->set_where_statement($condition_arr);
+
+        $data = $this->loader->run_query($query->get_query());
+        return $data;
+    }
+
+    function delete_table_row($table_names, $condition_arr)
+    {
+        /**
+         * Method used to run psql delete query.
+         * 
+         * @param array $table_names
+         * @param array $condition_arr
+         * @return bool
+         */
+        $query = new Psql_Query_Delete();
+        $query->set_preparer($this->prep);
+
+        $query->set_from_statement($table_names);
+        $query->set_where_statement($condition_arr);
+
+        $data = $this->loader->run_query($query->get_query());
+        return $data;
     }
 }
 
@@ -657,9 +695,17 @@ class Psql_Query_Select extends Psql_Query
  * Class for creating select psql queries
  */
 {
-    protected $statement_values;
+    protected $is_distinct;
     protected $page_num;
     protected $records_per_page;
+    protected $statement_values;
+
+    function __construct($is_distinct=FALSE, $page_num=NULL, $records_per_page=NULL)
+    {
+        $this->is_distinct = $is_distinct;
+        $this->page_num = $page_num;
+        $this->records_per_page = $records_per_page;
+    }
 
     function set_select_statement($statement_values)
     {
@@ -667,15 +713,6 @@ class Psql_Query_Select extends Psql_Query
          * Method that sets array of col_names to select.
          */
         $this->statement_values = $statement_values;
-    }
-
-    function set_limit_arr($limit) {
-        /**
-         * Method that sets page number and records per page.
-         * This is useful when selecting records for table visualisation.
-         */
-        $this->page_num = $limit[0];
-        $this->records_per_page = $limit[1];
     }
 
     protected function get_statement_values_str()
@@ -706,8 +743,13 @@ class Psql_Query_Select extends Psql_Query
          * 
          * @return string
          */
-        $query = "SELECT {$this->get_statement_values_str()}
+        if ($this->is_distinct) {
+            $query = "SELECT DISTINCT {$this->get_statement_values_str()}
                   FROM {$this->get_table_names_str()}";
+        } else {
+            $query = "SELECT {$this->get_statement_values_str()}
+                    FROM {$this->get_table_names_str()}";
+        }
         if (isset($this->condition)) {
             $query .= " WHERE {$this->get_condition_str()}";
         }
@@ -815,27 +857,27 @@ class Psql_Query_Delete extends Psql_Query
     }
 }
 
-class Psql_Query_Select_With extends Psql_Query_Select
+class Psql_Query_Select_Sq extends Psql_Query_Select
 {
     protected $w_statement_values;
     protected $w_table_names;
     protected $w_condition;
     protected $sub_query_name;
 
-    function __construct()
+    function set_sub_query_name($sub_query_name)
     {
-        $this->sub_query_name = "sq_name;";
+        $this->sub_query_name = $sub_query_name;
     }
 
-    function set_w_select_statement($w_statement_values)
+    function set_sq_select_statement($sq_statement_values)
     {
         /**
          * Method that sets array of col_names to select.
          */
-        $this->w_statement_values = $w_statement_values;
+        $this->w_statement_values = $sq_statement_values;
     }
 
-    function set_w_from_statement($w_table_names)
+    function set_sq_from_statement($sq_table_names)
     {
         /**
          * Method that sets array of table names with which statement will
@@ -843,18 +885,18 @@ class Psql_Query_Select_With extends Psql_Query_Select
          * 
          * @param array $w_table_names
          */
-        $this->w_table_names = $w_table_names;
+        $this->sq_table_names = $sq_table_names;
     }
 
-    function set_w_where_statement($w_condition)
+    function set_sq_where_statement($sq_condition)
     {
         /**
          * Method that sets key(col_name)=>value(col_value) array
          */
-        $this->w_condition = $w_condition;
+        $this->sq_condition = $sq_condition;
     }
 
-    protected function get_wstatement_values_str()
+    protected function get_sq_statement_values_str()
     {
         /**
          * Method that transforms array to psql compatible statement fragment
@@ -864,7 +906,7 @@ class Psql_Query_Select_With extends Psql_Query_Select
         return $this->prep->get_query_params($this->w_statement_values, "n");
     }
 
-    protected function get_wtable_names_str()
+    protected function get_sq_table_names_str()
     {
         /**
          * Method that transforms array to psql compatible statement fragment
@@ -874,7 +916,7 @@ class Psql_Query_Select_With extends Psql_Query_Select
         return $this->prep->get_query_params($this->w_table_names, "n");
     }
 
-    protected function get_wcondition_str()
+    protected function get_sq_condition_str()
     {
         /**
          * Method that transforms array to psql compatible statement fragment
@@ -891,17 +933,27 @@ class Psql_Query_Select_With extends Psql_Query_Select
          * 
          * @return string
          */
+
+        // When user don't choose subquery name.
+        if (!isset($this->sub_query_name)) {
+            $this->sub_query_name = "sq_name";
+        }
+
         $w_query = new Psql_Query_Select();  // subquery
         $w_query->set_preparer($this->prep);
-        $w_query->set_select_statement($this->w_statement_values);
-        $w_query->set_from_statement($this->w_table_names);
-        $w_query->set_where_statement($this->w_condition);
+        $w_query->set_select_statement($this->sq_statement_values);
+        $w_query->set_from_statement($this->sq_table_names);
+        if (isset($this->sq_condition)) {
+            $w_query->set_where_statement($this->sq_condition);
+        }
 
-        $query = new Psql_Query_Select();  // query
+        $query = new Psql_Query_Select($this->is_distinct, $this->page_num, $this->records_per_page);  // query
         $query->set_preparer($this->prep);
         $query->set_select_statement($this->statement_values);
         $query->set_from_statement($this->table_names);
-        $query->set_where_statement($this->condition);
+        if (isset($this->condition)) {
+            $query->set_where_statement($this->condition);
+        }
 
         $final_query = "WITH {$this->sub_query_name} as 
          ({$w_query->get_query(FALSE)})
@@ -1074,7 +1126,11 @@ class Data_Preparer
         foreach($val_arr as $key => $value) {
             if ($i == 0) {
                 if ($mode == "pk") {
-                    $cond .= "$key = '$value' ";
+                    if (is_array($value)) {  // special case for type cast
+                        $cond .= "$key = '{$value[0]}'{$value[1]}";
+                    } else {
+                        $cond .= "$key = '$value' ";
+                    }
                 } elseif ($mode == "up") {
                     $cond .= "$key = '$value'";
                 } elseif ($mode == "in") {
@@ -1084,7 +1140,11 @@ class Data_Preparer
                 }
             } else {
                 if ($mode == "pk") {
-                    $cond .= " and $key = '$value'";
+                    if (is_array($value)) {
+                        $cond .= " and $key = '{$value[0]}'{$value[1]}";
+                    } else {
+                        $cond .= " and $key = '$value'";
+                    }
                 } elseif ($mode == "up") {
                     $cond .= ", $key = '$value'";
                 } elseif ($mode == "in") {
@@ -1167,6 +1227,16 @@ abstract class Html_Object
 
     abstract protected function get_contents();
 
+    function set_class_name($class_name)
+    {
+        $this->class_name = $class_name;
+    }
+
+    function set_id_name($id_name)
+    {
+        $this->id_name = $id_name;
+    }
+
     protected function submerge_in_div($contents)
     {
         /**
@@ -1218,19 +1288,21 @@ abstract class Form extends Html_Object
  * inherited from with later classes.
  */
 {
+    protected $hidden_data;
     protected $link;
-    protected $data;
     protected $class_name;
     protected $id_name;
 
-    function __construct($class_name = Null, $id_name = NULL)
+    function __construct($hidden_data = NULL, $link= NULL, $class_name = NULL, $id_name = NULL)
     {
+        $this->hidden_data = $hidden_data;
+        $this->link = $link;
         $this->class_name = $class_name;
         $this->id_name = $id_name;
     }
 
-    function set_data($data) {
-        $this->data = $data;
+    function set_hidden_data($hidden_data) {
+        $this->hidden_data = $hidden_data;
     }
 
     function set_link($link) {
@@ -1255,10 +1327,10 @@ abstract class Form extends Html_Object
          * @return string
          */
         $html_code = $contents;
-        if ($this->link) {
+        if (!is_null($this->link)) {
             $html_code = $this->submerge_in_form($html_code, $this->link);
         }
-        if ($this->class_name or $this->id_name) {
+        if (!is_null($this->class_name) or !is_null($this->id_name)) {
             $html_code = $this->submerge_in_div($html_code, $this->class_name, $this->id_name);
         }
         return $html_code;
@@ -1303,7 +1375,7 @@ abstract class Form extends Html_Object
          * @return string
          */
         $inputs = "";
-        foreach ($this->data as $name=>$value) {
+        foreach ($this->hidden_data as $name=>$value) {
             $inputs .= $this->get_input_row("hidden", $name, $value);
         }
         return $inputs;
@@ -1331,14 +1403,6 @@ class Btn_Form extends Form
     private $btn_text;
     private $btn_name;
 
-    function __construct($class_name = NULL, $id_name = NULL)
-    {
-        $this->btn_text = "";
-        $this->btn_name = "f_btn_submit";
-        $this->class_name = $class_name;
-        $this->id_name = $id_name;
-    }
-
     function set_text($btn_text) {
         $this->btn_text = $btn_text;
     }
@@ -1354,7 +1418,16 @@ class Btn_Form extends Form
          * 
          * @return string
          */
-        $contents = $this->add_hidden_data();
+        if (!isset($this->btn_text)) {
+            $this->btn_text = "";
+        }
+        if (!isset($this->btn_name)) {
+            $this->btn_name = "f_btn_submit";
+        }
+        $contents = "";
+        if (isset($this->hidden_data)) {
+            $contents .= $this->add_hidden_data();
+        }
         $contents .= $this->get_input_row("submit", $this->btn_name, $this->btn_text);
         return $contents;
     }
@@ -1366,6 +1439,25 @@ abstract class Multichoice_Form extends Form
  * that use multichoice concept.
  */
 {
+    protected $btn_text;
+    protected $btn_name;
+
+    function set_btn_text($btn_text)
+    {
+        /**
+         * Sets text displayed in submit btn.
+         */
+        $this->btn_text = $btn_text;
+    }
+
+    function set_btn_name($btn_name)
+    {
+        /**
+         * Sets name of the submit btn.
+         */
+        $this->btn_name = $btn_name;
+    }
+
     protected function get_label_row($id, $label_text)
     /**
      * Method that returns html label row
@@ -1384,35 +1476,19 @@ class Text_Form extends Multichoice_Form
  * Has submit button used to move data via post.
  */
 {
+    private $text_form_data;
     private $preset_data;
-    private $btn_name;
 
-    function __construct($preset_data=TRUE, $class_name = NULL, $id_name = NULL)
+    function __construct($text_form_data, $link, $preset_data=TRUE, $class_name = NULL, $id_name = NULL)
     /**
      * @param bool $preset_data defines whether text fields will be filled
      */
     {
+        $this->text_form_data = $text_form_data;
+        $this->link = $link;
         $this->preset_data = $preset_data;
-        $this->btn_text = "Submit";
-        $this->btn_name = "f_t_btn_submit";
         $this->class_name = $class_name;
         $this->id_name = $id_name;
-    }
-
-    function set_btn_text($btn_text)
-    {
-        /**
-         * Sets text displayed in submit btn.
-         */
-        $this->btn_text = $btn_text;
-    }
-
-    function set_btn_name($btn_name)
-    {
-        /**
-         * Sets name of the submit btn.
-         */
-        $this->btn_name = $btn_name;
     }
 
     protected function get_contents()
@@ -1424,7 +1500,7 @@ class Text_Form extends Multichoice_Form
          * @return string
          */
         $contents = "";
-        foreach ($this->data as $k => $v) {
+        foreach ($this->text_form_data as $k => $v) {
             $table_name = $k;
             $value = $v;
             if (!$this->preset_data) {
@@ -1436,11 +1512,20 @@ class Text_Form extends Multichoice_Form
             $contents .= $this->get_input_row("text", $table_name, $value, $table_name, TRUE);
             $contents .= "<br>";
         }
-        $btn = new Btn_Form($this->btn_name);
+
+        if (!isset($this->btn_text)) {
+            $this->btn_text = "Submit";
+        }
+        if (!isset($this->btn_name)) {
+            $this->btn_name = "f_t_btn_submit";
+        }
+        $btn = new Btn_Form();
         $btn->set_text($this->btn_text);
         $btn->set_name($this->btn_name);
-        $btn->set_data($this->data[1]);
-
+        $btn->set_class_name($this->btn_name);
+        if (isset($this->hidden_data)) {
+            $btn->set_hidden_data($this->hidden_data);
+        }
         $contents .= $btn->get_html();
         return $contents;
     }
@@ -1448,19 +1533,33 @@ class Text_Form extends Multichoice_Form
 
 class Radio_Form extends Multichoice_Form
 {
+    private $radio_form_data;
+
+    function __construct($radio_form_data, $radio_form_context, $link, $class_name = NULL, $id_name = NULL)
+    /**
+     * @param bool $preset_data defines whether text fields will be filled
+     */
+    {
+        $this->radio_form_data = $radio_form_data;
+        $this->link = $link;
+        $this->class_name = $class_name;
+        $this->id_name = $id_name;
+    }
+
     protected function get_contents()
     {
         $contents = "";
-        foreach ($this->data[0] as $k => $v) {
+        foreach ($this->radio_form_data as $v) {
             $contents .= $this->get_input_row("text", $k, $v, $k, TRUE);
             $contents .= $this->get_label_row($k, $k);
             $contents .= "<br>";
         }
-        $btn = new Btn_Form("f_r_btn_submit");
-        $btn->set_text("Submit");
-        $btn->set_name("f_r_btn_submit");
-        $btn->set_data($this->data[1]);
-
+        $btn = new Btn_Form($this->btn_name);
+        $btn->set_text($this->btn_text);
+        $btn->set_name($this->btn_name);
+        if (isset($this->hidden_data)) {
+            $btn->set_hidden_data($this->hidden_data);
+        }
         $contents .= $btn->get_html();
         return $contents;
     }
