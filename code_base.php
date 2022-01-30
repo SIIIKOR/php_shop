@@ -526,6 +526,9 @@ class Query_Runner
 
     function give_preparer()
     {
+        /**
+         * Method used to pass dependency.
+         */
         return $this->prep;
     }
 
@@ -806,11 +809,17 @@ class Login_handler
 
     function is_logged()
     {
+        /**
+         * @return bool
+         */
         return $this->is_logged;
     }
 
     function is_admin()
     {
+        /**
+         * @return bool
+         */
         return $this->is_admin;
     }
 
