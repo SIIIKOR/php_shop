@@ -1534,13 +1534,15 @@ class Text_Form extends Multichoice_Form
 class Radio_Form extends Multichoice_Form
 {
     private $radio_form_data;
+    private $context;
 
-    function __construct($radio_form_data, $radio_form_context, $link, $class_name = NULL, $id_name = NULL)
+    function __construct($radio_form_data, $context, $link, $class_name = NULL, $id_name = NULL)
     /**
      * @param bool $preset_data defines whether text fields will be filled
      */
     {
         $this->radio_form_data = $radio_form_data;
+        $this->context = $context;
         $this->link = $link;
         $this->class_name = $class_name;
         $this->id_name = $id_name;
@@ -1550,8 +1552,8 @@ class Radio_Form extends Multichoice_Form
     {
         $contents = "";
         foreach ($this->radio_form_data as $v) {
-            $contents .= $this->get_input_row("text", $k, $v, $k, TRUE);
-            $contents .= $this->get_label_row($k, $k);
+            $contents .= $this->get_input_row("text", $v, $this->context, $v, TRUE);
+            $contents .= $this->get_label_row($v, $v);
             $contents .= "<br>";
         }
         $btn = new Btn_Form($this->btn_name);
@@ -1572,6 +1574,21 @@ class Multichoice_Btn_Form extends Form
  * Each btn can move data via post.
  */
 {
+    private $btns_data;
+    private $context;
+
+    function __construct($btns_data, $context, $link, $class_name = NULL, $id_name = NULL)
+    /**
+     * @param bool $preset_data defines whether text fields will be filled
+     */
+    {
+        $this->btns_data = $btns_data;
+        $this->context = $context;
+        $this->link = $link;
+        $this->class_name = $class_name;
+        $this->id_name = $id_name;
+    }
+
     protected function get_contents()
     {
         /**
@@ -1580,12 +1597,10 @@ class Multichoice_Btn_Form extends Form
          * @return string
          */
         $contents = "";
-        foreach ($this->data as $key => $value) {
-            $btn = new Btn_Form();
-            $btn->set_text($key);
+        foreach ($this->btns_data as $value) {
+            $btn = new Btn_Form([$this->context=>$value], $this->link);
+            $btn->set_text($value);
             $btn->set_name("f_m_btn_submit");
-            $btn->set_data([$key=>$value]);  //
-            $btn->set_link($this->link);
 
             $contents .= $btn->get_html();
         }
@@ -1715,11 +1730,9 @@ class Table extends Html_Object
                 foreach($this->btn_data as $k=>$v) {  // this should contain table_name and page_num
                     $post_data[$k] = $v;
                 }
-                $btn = new Btn_Form();
+                $btn = new Btn_Form($post_data, $this->btn_link);
                 $btn->set_text("X");
                 $btn->set_name("f_btn_action");
-                $btn->set_data($post_data);
-                $btn->set_link($this->btn_link);
 
                 $cells .= "<{$type} class=\"actions\">{$btn->get_html()}</{$type}>";
         }
@@ -1815,11 +1828,9 @@ class Pagination extends Html_Object
             $new_page_num = $this->page_num - 1;
             $post_data["page_num"] = $new_page_num;
             
-            $pagi_btn = new Btn_Form();
+            $pagi_btn = new Btn_Form($post_data, $this->link);
             $pagi_btn->set_text("left");
             $pagi_btn->set_name("form_pagi_left_btn");
-            $pagi_btn->set_data($post_data);
-            $pagi_btn->set_link($this->link);
 
             $pagination .= $pagi_btn->get_html();
             // if there should exists right button.
@@ -1828,11 +1839,9 @@ class Pagination extends Html_Object
             $new_page_num = $this->page_num + 1;
             $post_data["page_num"] = $new_page_num;
             
-            $pagi_btn = new Btn_Form();
+            $pagi_btn = new Btn_Form($post_data, $this->link);
             $pagi_btn->set_text("right");
             $pagi_btn->set_name("form_pagi_right_btn");
-            $pagi_btn->set_data($post_data);
-            $pagi_btn->set_link($this->link);
 
             $pagination .= $pagi_btn->get_html();
           }
