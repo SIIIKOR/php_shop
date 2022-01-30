@@ -262,7 +262,22 @@ class Psql_Query_Insert extends Psql_Query
  * Class for creating insert psql queries
  */
 {
+    protected $return_id;
     protected $insert_values;
+    protected $statement_values;
+
+    function __construct($return_id=FALSE)
+    {
+        $this->return_id = $return_id;   
+    }
+
+    function set_select_statement($statement_values)
+    {
+        /**
+         * Method that sets array of col_names to insert to.
+         */
+        $this->statement_values = $statement_values;
+    }
 
     function set_insert_statement($insert_values)
     {
@@ -270,6 +285,16 @@ class Psql_Query_Insert extends Psql_Query
          * Method that sets array with column name values to insert.
          */
         $this->insert_values = $insert_values;
+    }
+
+    protected function get_statement_values_str()
+    {
+        /**
+         * Method that transforms array to psql compatible statement fragment
+         * 
+         * @return string
+         */
+        return $this->prep->get_query_params($this->statement_values, "n");
     }
 
     function get_insert_values_str()
@@ -289,8 +314,16 @@ class Psql_Query_Insert extends Psql_Query
          * 
          * @return string
          */
-        $query = "INSERT INTO {$this->get_table_names_str()}
-                  VALUES {$this->get_insert_values_str()}";
+        $query = "INSERT INTO {$this->get_table_names_str()}";
+        if (isset($this->statement_values)) {
+            $query .= " ({$this->get_statement_values_str()})";
+        }
+        $query .= " VALUES {$this->get_insert_values_str()}";
+        // This kinda stucks, because i had to change all names of id columns
+        // To just id for exampel user_id to id or product_id to id and so on.
+        if ($this->return_id) {
+            $query .= " RETURNING id";
+        }
         return $query;
     }
 }
@@ -651,22 +684,28 @@ class Query_Runner
         return $data;
     }
 
-    function insert_table_row($table_names, $values)
+    function insert_table_row($table_names, $values, $column_names=NULL, $return_id=FALSE)
     {
         /**
          * Method used to run psql insert query.
          * 
          * @param array $table_names
          * @param array $values
-         * @return bool
+         * @param array $column_names
+         * @return bool|integer
          */
-        $query = new Psql_Query_Insert();
+        $query = new Psql_Query_Insert($return_id);
         $query->set_preparer($this->prep);
 
         $query->set_where_statement($table_names);
         $query->set_insert_statement($values);
-
+        if (!is_null($column_names)) {
+            $query->set_select_statement($column_names);
+        }
         $data = $this->loader->run_query($query->get_query());
+        if (is_array($data)) {
+            return $data[0]["id"];
+        }
         return $data;
     }
 
@@ -756,7 +795,7 @@ class Login_handler
 
     function is_admin()
     {
-        return $this->is_admin();
+        return $this->is_admin;
     }
 
     private function get_token_by_mail($mail)
@@ -833,46 +872,35 @@ class Login_handler
 }
 
 class Shop_Handler
-{
-    function get_occupied_ids($id_name, $table_name)
+{   
+    private $register_data;
+    private $run;
+    private $prep;
+
+    function __construct($register_data_array)
     {
-        /**
-         * Method that return list of occupied ids in table_name.
-         * 
-         * @param string $id_name name of column
-         * @param string $table_name table to perform search
-         * @return array
-         */
-        $query = "SELECT {$id_name}
-                  FROM $table_name;";
-        return $this->run_query($query);
+        $this->register_data = $register_data_array;
     }
 
-    function get_unoccupied_id($id_name, $table_name)
+    function set_runner($runner)
     {
         /**
-         * Method that returns list of unoccupied ids.
-         * 
-         * @param string $id_name name of column
-         * @param string $table_name table to perform search
-         * @return array
+         * Dependency injection.
+         * Method used to inject runner class.
          */
-        $occupied_ids = $this->get_occupied_ids($id_name, $table_name);
-        $ids_set = [];
-        for ($i=0; $i<count($occupied_ids); $i++) {
-            $ids_set[$occupied_ids[$i][$id_name]] = TRUE;
-        }
-        $found = FALSE;
-        while (!$found) { // to głupie mogłem użyć incrementu.
-            $random_id = rand(1, 999999);
-            if (!array_key_exists($random_id, $ids_set)) {
-                $found = TRUE;
-            }
-        }
-        return $random_id;
+        $this->run = $runner;
     }
 
-    function register_user($register_data_array)
+    function set_preparer($preparer)
+    {
+        /**
+         * Dependency injection.
+         * Method used to inject preparer class.
+         */
+        $this->prep = $preparer;
+    }
+
+    function register_user()
     {
         /**
          * Method that run query that registers user.
@@ -881,16 +909,15 @@ class Shop_Handler
          * 
          * @return bool
          */
-        $unoccupied_id = $this->get_unoccupied_id("user_id", "users");
-        array_unshift($register_data_array, $unoccupied_id);
-        $values = $this->prep->get_query_params($register_data_array, "in");
-        $is_successful = $this->insert_table_row("users", $values);
+
+        $register_data = $this->register_data;
+        $user_id = $this->run->insert_table_row("users", array_values($register_data), array_keys($register_data), TRUE);
         // is user got registered, creates token that will be stored in cookie to sustain login
-        if ($is_successful) {
+        if (is_integer($user_id)) {
             $token = $this->prep->get_random_token(8);
-            $this->insert_table_row("tokens", $this->prep->get_query_params([$unoccupied_id, $token], "in"));
+            return $this->run->insert_table_row("tokens", [$user_id, $token]);
         }
-        return $is_successful;
+        return FALSE;
     }
 }
 
@@ -1202,7 +1229,7 @@ class Data_Preparer
          */
         $is_valid = TRUE;
         foreach (array_values($user_input_arr) as $inpt) {
-            if (!$this::is_valid()is_valid($inpt, $pattern)) {
+            if (!$this::is_valid($inpt, $pattern)) {
                 $is_valid = FALSE;
                 break;
             }
