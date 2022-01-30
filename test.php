@@ -8,28 +8,33 @@ $prep = new Data_Preparer();
 
 $runner = new Query_Runner($loader, $prep);
 
-$data = [
-    "name"=>"mateusz",
-    "surname"=>"sikorski",
-    "mail"=>"mateusz.sidsakfdsorski@gmail.com",
-    "password"=>"haslo"];
+// $data = [
+//     "name"=>"mateusz",
+//     "surname"=>"sikorski",
+//     "mail"=>"mateusz.sikorski@ymail.com",
+//     "password"=>"haslo"];
 
-$shop = new Shop_Handler($runner, $data);
+// $shop = new Shop_Handler($runner, $data);
 
-$satus = $shop->register_user($data);
+// $status = $shop->register_user($data);
 
-print($satus);
+// print($status);
 
 // $logger = new Login_handler($runner, [
-//     "mail"=>"mateusz.sikorski@gmail.com",
+//     "mail"=>"mateusz.sikorski@ymail.com",
 //     "password"=>"haslo"
 // ]);
 
 // $logger = new Login_handler($runner, [
-//     "mail"=>"mateusz.sikorski@gmail.com",
-//     "token"=>"cc2862cc167dd721"
+//     "mail"=>"admin@mail.com",
+//     "password"=>"admin"
 // ]);
 
-// print($logger->is_logged());
-// print("<br><br>");
-// print($logger->is_admin());
+$logger = new Login_handler($runner, [
+    "mail"=>"admin@mail.com",
+    "cookie_token"=>"admin"
+], TRUE);
+
+print("Logged: {$logger->is_logged()}");
+print("<br><br>");
+print("Admin: {$logger->is_admin()}");

@@ -253,6 +253,7 @@ class Psql_Query_Select extends Psql_Query
         if (isset($this->page_num) and isset($this->records_per_page)) {
             $query .= " {$this->get_limit_str()}";
         }
+        return $query;
     }
 }
 
@@ -388,9 +389,9 @@ class Psql_Query_Delete extends Psql_Query
 
 class Psql_Query_Select_Sq extends Psql_Query_Select
 {
-    protected $w_statement_values;
-    protected $w_table_names;
-    protected $w_condition;
+    protected $sq_statement_values;
+    protected $sq_table_names;
+    protected $sq_condition;
     protected $sub_query_name;
 
     function set_sub_query_name($sub_query_name)
@@ -403,7 +404,7 @@ class Psql_Query_Select_Sq extends Psql_Query_Select
         /**
          * Method that sets array of col_names to select.
          */
-        $this->w_statement_values = $sq_statement_values;
+        $this->sq_statement_values = $sq_statement_values;
     }
 
     function set_sq_from_statement($sq_table_names)
@@ -612,7 +613,7 @@ class Query_Runner
         $query->set_from_statement(["pg_constraint"]);
         $query->set_where_statement([
             "contype"=>"p",
-            "connamespace"=>[$this->loader->get_schema_name(), "::regnamespace"]]);
+            "connamespace"=>[$this->loader->get_schema_name(), "cast", "::regnamespace"]]);
 
         $data = $this->loader->run_query($query->get_query());
         $out = [];
@@ -823,10 +824,10 @@ class Login_handler
          * @return array
          */
         $data = $this->run->get_table_contents_sq(
-            ["tokens.user_id", "cookie_token"], 
+            ["tokens.id", "cookie_token"], 
             ["tokens", "user_ids"],
-            ["user_ids.user_id"=>"tokens.user_id"],
-            ["user_id"],
+            ["user_ids.id"=>["tokens.id", "symbolic"]],
+            ["id"],
             ["users"],
             ["mail"=>$mail],
             "user_ids");
@@ -841,7 +842,7 @@ class Login_handler
          * @return bool
          */
         $results = $this->run->get_table_contents(["*"], ["staff"], ["id"=>$user_id]);
-        if (is_array($results)) {
+        if (($results)) {
             return TRUE;
         }
         return FALSE;
@@ -855,7 +856,7 @@ class Login_handler
          * 1) login by mail and password - initial
          * 2) relogin by cookie: mail and token
          * 
-         * @return
+         * @return array
          */
         $err_mess = "Invalid login information.<br>Try again.";
         // login with password which will be compared with hashed password in db
@@ -865,7 +866,7 @@ class Login_handler
                 $password = $this->user_login_data["password"];
                 // get user_id and hashed password by mail
                 $results = $this->run->get_table_contents(["*"], ["users"], ["mail"=>$this->user_login_data["mail"]])[0];
-                print_r($results);
+
                 $db_password = $results["password"];
                 $is_correct = password_verify($password, $db_password);
                 // second statment is used when password in db in not hashed(test purpose)
@@ -926,6 +927,7 @@ class Shop_Handler
          * 
          * @return bool
          */
+        $register_data_array["password"] = password_hash($register_data_array["password"], PASSWORD_DEFAULT);
         $user_id = $this->run->insert_table_row(["users"], array_values($register_data_array), array_keys($register_data_array), TRUE);
         // is user got registered, creates token that will be stored in cookie to sustain login
         if (is_integer($user_id)) {
@@ -1169,9 +1171,13 @@ class Data_Preparer
         $i = 0;
         foreach($val_arr as $key => $value) {
             if (is_array($value)) {
-                $value_str = $this::get_value_str($value[0]);
-                $type_cast = $value[1];
-                $value_str .= $type_cast;
+                if ($value[1] == "cast") {
+                    $value_str = $this::get_value_str($value[0]);
+                    $type_cast = $value[1];
+                    $value_str .= $type_cast;
+                } elseif ($value[1] == "symbolic") {
+                    $value_str = $value[0];
+                }
             } else {
                 $value_str = $this::get_value_str($value);
             }
