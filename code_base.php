@@ -1680,6 +1680,17 @@ class Table extends Html_Object
     private $btn_link;
     private $btn_data;
 
+    function __construct($table_data, $col_names=NULL)
+    {
+        $this->table_data = $table_data;
+        if (!is_null($col_names)) {
+            $this->col_names = $this->col_names;
+        }
+        if (!isset($this->col_names)) {
+            $this->col_names = $this->get_col_names();
+        }
+    }
+
     function set_table_data($table_data)
     {
         /**
@@ -1736,7 +1747,7 @@ class Table extends Html_Object
         $this->btn_data = $data;
     }
     
-    function get_col_names($table_data)
+    function get_col_names()
     {
         /**
          * Used when col_names is not provided.
@@ -1744,7 +1755,7 @@ class Table extends Html_Object
          * 
          * @param array $table_data
          */
-        return array_flip(array_keys($table_data[0]));
+        return array_keys($this->table_data[0]);
     }
 
     private function get_table_row($data_row, $type = "td")
@@ -1817,7 +1828,6 @@ class Table extends Html_Object
      */
     {
         $contents = "";
-
         foreach ($this->table_data as $data_row) {
             $cells = $this->get_table_row($data_row);
             $contents .= "<tr>{$cells}</tr>";
@@ -1849,8 +1859,12 @@ class Pagination extends Html_Object
     private $total_row_count;
     private $link;
 
-    function __construct($class_name = "comb_pagination", $id_name = NULL)
+    function __construct($page_num, $records_per_page, $total_row_count, $link, $class_name = "comb_pagination", $id_name = NULL)
     {
+        $this->page_num = $page_num;
+        $this->records_per_page = $records_per_page;
+        $this->total_row_count = $total_row_count;
+        $this->link = $link;
         $this->class_name = $class_name;
         $this->id_name = $id_name;
     }
