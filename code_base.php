@@ -1256,7 +1256,7 @@ class Data_Preparer
         return $cond;
     }
 
-    function get_query_output_col_to_list($query_out, $row_name)
+    function get_query_output_col_to_list($query_out)
     {
         /**
          * Takes single row from query and transforms it to a list
@@ -1265,6 +1265,7 @@ class Data_Preparer
          * @param string $col_name
          * @return array
          */
+        $row_name = array_key_first($query_out[0]); 
         $list = [];
         foreach ($query_out as $row) {
             array_push($list, $row[$row_name]);

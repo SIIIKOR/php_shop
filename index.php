@@ -113,41 +113,46 @@ if ($logger->is_logged()) {
 // display user panel.
 print($ul_content);
 
-// // how many records will be displayed per page
-// $records_per_page = 5;
-// $page_num = $post_handler->get_post_arg("page_num");
-// if (!$page_num) {
-//     // if pagination wasn't used yet.
-//     $page_num = 0;
-// }
-// // if user chose category, this category is assigned here, else it's False
-// $category_name = $post_handler->get_post_arg("category_name");
+
 
 // get names of categories and create buttons to choose them.
-$category_names = $runner->get_table_contents(["category_name"], ["product_groups"]);
-print_r($category_names);
-// $query_out_category_names = $loader->get_table_contents("product_groups", NULL, "category_name", TRUE);
-// $category_names = $preparer->get_query_output_col_to_list($query_out_category_names, "category_name");
-// array_push($category_names, "reset");
-// $category_names = $preparer->tag_data("category_name", $category_names);
+$category_names_query_output = $runner->get_table_contents(["category_name"], ["product_groups"], NULL, TRUE);
+$category_names = $preparer->get_query_output_col_to_list($category_names_query_output);
+array_push($category_names, "reset"); // adds additional reset btn
+// creates btns used to select desired category name
+$category_btn = new Multichoice_Btn_Form($category_names, "category_name", "index.php", "cat_multi_btns");
+$category_btn->create();
 
-// $choose_category = new Multichoice_Btn_Form($category_names, "index.php", "category_names");
-// $choose_category->create();
+// after using category_btn
+$category_name = $post_handler->get_post_arg("category_name");
 
-// $table_name = "product_groups";
-// $col_names = ["group_id", "product_name", "category_name", "price"];
-// // based on pressed category button, perform action to create condition for query.
-// // if user pressed reset, condition changed to null.
-// $condition = NULL;
-// if ($category_name) {
-//     if ($category_name == "reset") {
-//         $condition = NULL;
-//     } else {
-//         $condition = "category_name = '$category_name'";
-//     }
-// }
+$condition_arr = NULL;
+if ($category_name) {  // if cat_multi_btns was pressed
+    if ($category_name == "reset") {  // if reset, reset condition_arr
+        $condition_arr = NULL;
+    } else {  // create condition_arr with chosen category name
+        $condition_arr = ["category_name"=>$category_name];
+    }
+}
 
-// $data = $loader->get_table_contents($table_name, $condition, $col_names, FALSE, $page_num, $records_per_page);
+// how many records will be displayed per page
+$records_per_page = 5;
+$page_num = $post_handler->get_post_arg("page_num");
+if (!$page_num) {
+    // if pagination wasn't used yet.
+    $page_num = 0;
+}
+
+// desired column names to display
+$col_names = ["id", "product_name", "category_name", "price"];
+// fetched contents.
+$shop_contents = $runner->get_table_contents(
+    $col_names, ["product_groups"], $condition_arr, 
+    FALSE, $page_num, $records_per_page);
+
+print_r($shop_contents);
+
+// $data = $loader->get_table_contents($table_name, $condition_arr, $col_names, FALSE, $page_num, $records_per_page);
 // // create table
 // $primary_keys = $loader->get_primary_key_names();
 // $table = new Table($data, array_slice($col_names, 1), $primary_keys, $table_name, $page_num, "product_page.php");
