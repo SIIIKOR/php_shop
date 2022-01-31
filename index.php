@@ -11,16 +11,18 @@
 <?php
 require_once("code_base.php");
 
-$handler = new Post_Data_Handler($_POST);
+$post_handler = new Post_Data_Handler($_POST);
 
 $loader = new Db_Loader();
 $preparer = new Data_Preparer();
 // object used to run queries
-$runner = new Query_Runner($loader, $prep);
+$runner = new Query_Runner($loader, $preparer);
+// object used to procces login data
+$logger = new Login_handler($runner);
 
 // if cookie is set, it isn't user initial login, thus log user with cookie
 if (isset($_COOKIE["cookie_token"])) {
-    $logger = new Login_handler($runner, $_COOKIE, TRUE);
+    $logger->set_login($_COOKIE, TRUE);
     $_SESSION = $_COOKIE;
 
     // this would be strange.
@@ -30,17 +32,17 @@ if (isset($_COOKIE["cookie_token"])) {
     }
 }
 // if user pressed logout btn, delete cookie
-if ($handler->get_post_arg("mode") == "logout") {
+if ($post_handler->get_post_arg("mode") == "logout") {
     // so that user will have to login again.
     if ($logger->is_logged()) {
         $logger->delete_cookie();
     }
 }
 // if user just tried to login.
-if ($handler->get_post_arg("mode") == "login_attempt") {
+if ($post_handler->get_post_arg("mode") == "login_attempt") {
     // data from text form on login page is colective
-    $login_data = $handler->get_colective_data();
-    $logger = new Login_handler($runner, $login_data);
+    $login_data = $post_handler->get_colective_data();
+    $logger->set_login($login_data);
     if ($logger->is_logged()) {
         $logger->create_cookie($login_data["mail"]);
 
@@ -113,13 +115,13 @@ print($ul_content);
 
 // // how many records will be displayed per page
 // $records_per_page = 5;
-// $page_num = $handler->get_post_arg("page_num");
+// $page_num = $post_handler->get_post_arg("page_num");
 // if (!$page_num) {
 //     // if pagination wasn't used yet.
 //     $page_num = 0;
 // }
 // // if user chose category, this category is assigned here, else it's False
-// $category_name = $handler->get_post_arg("category_name");
+// $category_name = $post_handler->get_post_arg("category_name");
 
 // get names of categories and create buttons to choose them.
 $category_names = $runner->get_table_contents(["category_name"], ["product_groups"]);

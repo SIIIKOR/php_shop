@@ -1,5 +1,4 @@
 <?php
-
 class Db_Loader
 /**
  * Class used to comunicate with database.
@@ -772,20 +771,10 @@ class Login_handler
     private $is_logged;
     private $is_admin;
 
-    function __construct($runner, $login_data, $is_cookie=FALSE)
+    function __construct($runner)
     {
         $this->run = $runner;
         $this->prep = $runner->give_preparer();
-
-        if ($is_cookie) {
-            $this->cookie_data = $login_data;
-        } else {
-            $this->user_login_data = $login_data;
-        }
-
-        $login_status = $this->check_login_attempt();
-        $this->is_logged = $login_status[0];
-        $this->is_admin = $login_status[1];
     }
 
     function set_runner($runner)
@@ -795,7 +784,9 @@ class Login_handler
          * Method used to inject runner class.
          */
         $this->run = $runner;
-        $this->prep = $runner->give_preparer();
+        if (!isset($this->prep)) {
+            $this->prep = $runner->give_preparer();
+        }
     }
 
     function set_preparer($preparer)
@@ -807,12 +798,32 @@ class Login_handler
         $this->prep = $preparer;
     }
 
+    function set_login($login_data, $is_cookie=FALSE)
+    {
+        /**
+         * Each time we want to get information about given login data,
+         * we use this method.
+         */
+        if ($is_cookie) {
+            $this->cookie_data = $login_data;
+        } else {
+            $this->user_login_data = $login_data;
+        }
+
+        $login_status = $this->check_login_attempt();
+        $this->is_logged = $login_status[0];
+        $this->is_admin = $login_status[1];
+    }
+
     function is_logged()
     {
         /**
          * @return bool
          */
-        return $this->is_logged;
+        if (isset($this->is_logged)) {
+            return $this->is_logged;
+        }
+        return FALSE;
     }
 
     function is_admin()
@@ -820,7 +831,10 @@ class Login_handler
         /**
          * @return bool
          */
-        return $this->is_admin;
+        if (isset($this->is_admin)) {
+            return $this->is_admin;
+        }
+        return FALSE;
     }
 
     private function get_token_by_mail($mail)
@@ -857,11 +871,12 @@ class Login_handler
         return FALSE;
     }
 
-    function create_cookie($mail)
+    function create_cookie()
     {
         /**
          * Method that creates cookie for user.
          */
+        $mail = $this->user_login_data["mail"];
         $token = $this->get_token_by_mail($mail);
         setcookie("mail", $mail, time() + 60*60); // 1h
         setcookie("cookie_token", $token, time() + 60*60); // 1h   
