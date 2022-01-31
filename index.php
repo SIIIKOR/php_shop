@@ -155,10 +155,11 @@ $table = new Table($shop_contents, array_slice($col_names, 1));
 $table->set_primary_keys(["id"]);
 $table->set_btn_link("product_page.php");
 $table->create();
-// // create pagination
-// $total_row_count = $loader->get_table_row_amount($table_name);
-// $pagination = new Pagination($table_name, $page_num, $records_per_page, $total_row_count, "index.php");
-// $pagination->create();
+
+// create pagination
+$total_row_count = $runner->get_table_row_amount("product_groups");
+$pagination = new Pagination($page_num, $records_per_page, $total_row_count, "index.php");
+$pagination->create();
 
 ?>
 
