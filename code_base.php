@@ -1721,7 +1721,7 @@ class Table extends Html_Object
     {
         $this->table_data = $table_data;
         if (!is_null($col_names)) {
-            $this->col_names = $this->col_names;
+            $this->col_names = array_flip($col_names);
         }
         if (!isset($this->col_names)) {
             $this->col_names = $this->get_col_names();
@@ -1746,7 +1746,7 @@ class Table extends Html_Object
          * 
          * @param array $primary_keys
          */
-        $this->primary_keys = $primary_keys;
+        $this->primary_keys = array_flip($primary_keys);
     }
 
     function set_col_names($col_names)
@@ -1817,7 +1817,7 @@ class Table extends Html_Object
         $cells = "";
         foreach ($data_row as $key => $value) {  // column row => value
             // if current column is meant to be displayed or in this instance method returns heading
-            if (array_key_exists($key, $this->col_names) or $type = "th") {
+            if (array_key_exists($key, $this->col_names) or $type == "th") {
                 if ($value == FALSE) {  // jakaś magia phpa, true to 1 ale false to nic
                     $value = "0";
                 }
