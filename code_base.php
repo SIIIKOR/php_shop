@@ -846,7 +846,7 @@ class Login_handler
     private function check_admin_status($user_id)
     {
         /**
-         * Method that check whether user has admin privileges.
+         * Method that checks whether user has admin privileges.
          * 
          * @return bool
          */
@@ -855,6 +855,27 @@ class Login_handler
             return TRUE;
         }
         return FALSE;
+    }
+
+    function create_cookie($mail)
+    {
+        /**
+         * Method that creates cookie for user.
+         */
+        $token = $this->get_token_by_mail($mail);
+        setcookie("mail", $mail, time() + 60*60); // 1h
+        setcookie("cookie_token", $token, time() + 60*60); // 1h   
+    }
+
+    function delete_cookie()
+    {
+        /**
+         * Method that deletes user cookie.
+         */
+        unset($_COOKIE['mail']);
+        unset($_COOKIE['cookie_token']);
+        setcookie('mail', null, -1, '/');
+        setcookie('cookie_token', null, -1, '/');
     }
 
     private function check_login_attempt()
