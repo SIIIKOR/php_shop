@@ -717,10 +717,13 @@ class Query_Runner
             $query->set_select_statement($column_names);
         }
         $data = $this->loader->run_query($query->get_query());
-        if (is_array($data)) {
-            return $data[0]["id"];
+        if (is_array($data)) { // Only when query has returning clause
+            if (array_key_exists("id", $data[0])) {
+                return $data[0]["id"];
+            }
+            return TRUE;
         }
-        return $data;
+        return $data; // FALSE from run_query
     }
 
     function update_table_row($update_values, $table_names, $condition_arr)
@@ -837,7 +840,19 @@ class Login_handler
         return FALSE;
     }
 
-    private function get_token_by_mail($mail)
+    function logout()
+    {
+        /**
+         * Method uesd to logout, deletes cookie.
+         * 
+         * @return void
+         */
+        $this->is_logged = FALSE;
+        $this->is_admin = FALSE;
+        $this->delete_cookie();
+    }
+
+    private function get_token_data_by_mail($mail)
     {
         /**
          * Method that returns data from token table via mail parameter.
@@ -877,12 +892,12 @@ class Login_handler
          * Method that creates cookie for user.
          */
         $mail = $this->user_login_data["mail"];
-        $token = $this->get_token_by_mail($mail);
+        $token = $this->get_token_data_by_mail($mail)["cookie_token"];
         setcookie("mail", $mail, time() + 60*60); // 1h
         setcookie("cookie_token", $token, time() + 60*60); // 1h   
     }
 
-    function delete_cookie()
+    private function delete_cookie()
     {
         /**
          * Method that deletes user cookie.
@@ -922,7 +937,7 @@ class Login_handler
                 $err_mess = "Unallowed input.<br>Try again.";
             }
         } elseif (isset($this->cookie_data)) { // login with token
-            $token_data = $this->get_token_by_mail($this->cookie_data["mail"]);
+            $token_data = $this->get_token_data_by_mail($this->cookie_data["mail"]);
             if ($this->cookie_data["cookie_token"] == $token_data["cookie_token"]) {
                 return [TRUE, $this->check_admin_status($token_data["id"])]; // data[0] is user_id
             }
@@ -972,13 +987,17 @@ class Shop_Handler
          * 
          * @return bool
          */
-        $register_data_array["password"] = password_hash($register_data_array["password"], PASSWORD_DEFAULT);
-        $user_id = $this->run->insert_table_row(["users"], array_values($register_data_array), array_keys($register_data_array), TRUE);
-        // is user got registered, creates token that will be stored in cookie to sustain login
-        if (is_integer($user_id)) {
-            $token = $this->prep->get_random_token(8);
-            return $this->run->insert_table_row(["tokens"], [$user_id, $token]);
+        if ($this->prep->check_user_input($register_data_array, "/^[\w\s.@]+$/")) {
+            $register_data_array["password"] = password_hash($register_data_array["password"], PASSWORD_DEFAULT);
+            $user_id = $this->run->insert_table_row(["users"], array_values($register_data_array), array_keys($register_data_array), TRUE);
+            // is user got registered, creates token that will be stored in cookie to sustain login
+            if (is_integer($user_id)) {
+                $token = $this->prep->get_random_token(8);
+                return $this->run->insert_table_row(["tokens"], [$user_id, $token]);
+            }
         }
+        $err_mess = new Text_Field("Unallowed input.<br>Try again.", "err_mess");
+        $err_mess->create();
         return FALSE;
     }
 }
@@ -1019,7 +1038,7 @@ class Crud_Handler
         $user_input_arr = $action_arr[1];  // data provided by user, usually in text form.
         $hidden_data_arr = $action_arr[2];  // primary keys used in creating where statement.
         if ($action) {
-            if ($this->prep->check_user_input($user_input_arr)) {
+            if ($this->prep->check_user_input($user_input_arr, "/^[\w\s.@]+$/")) {
                 $table_name = $this->handl->get_post_arg("table_name");
                 if ($action == "update") {
                     $this->run->update_table_row($user_input_arr, $table_name, $hidden_data_arr);
@@ -1098,7 +1117,7 @@ class Post_Data_Handler
          * @return integer
          */
         $iden_amount = $this->get_identified_data_amount();
-        return count($this->post_data) -1 - $iden_amount - $this->predef_par_amount;
+        return count($this->post_data) - $iden_amount - $this->predef_par_amount;
     }
 
     function get_colective_data()
@@ -1110,7 +1129,7 @@ class Post_Data_Handler
          * 
          * @return array
          */
-        $cd_end_index = -$this->predef_par_amount -1;
+        $cd_end_index = -$this->predef_par_amount;
         if ($this->id) {
             $cd_end_index = $this->get_colective_data_end_index($this->predef_par_amount, $this->id);
         }
@@ -1126,7 +1145,7 @@ class Post_Data_Handler
          * @return array
          */
         $identified_data_start = - $this->predef_par_amount - $this->get_identified_data_amount() -1;
-        $identified_data = array_slice($this->post_data, $identified_data_start, -$this->predef_par_amount -1);
+        $identified_data = array_slice($this->post_data, $identified_data_start, -$this->predef_par_amount);
         $unidentified_data = [];
         foreach ($identified_data as $k=>$v) {
             $unidentified_data[explode("-", $k)[1]] = $v;
@@ -1575,7 +1594,7 @@ class Text_Form extends Multichoice_Form
     private $text_form_data;
     private $preset_data;
 
-    function __construct($text_form_data, $link, $preset_data=TRUE, $class_name = NULL, $id_name = NULL)
+    function __construct($text_form_data, $link, $preset_data=FALSE, $class_name = NULL, $id_name = NULL)
     /**
      * @param bool $preset_data defines whether text fields will be filled
      */
@@ -1652,7 +1671,7 @@ class Radio_Form extends Multichoice_Form
             $contents .= $this->get_label_row($v, $v);
             $contents .= "<br>";
         }
-        $btn = new Btn_Form($this->btn_name);
+        $btn = new Btn_Form();
         $btn->set_text($this->btn_text);
         $btn->set_name($this->btn_name);
         if (isset($this->hidden_data)) {

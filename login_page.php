@@ -8,26 +8,23 @@
 
 <?php
 require_once("code_base.php");
-$handler = new Data_Handler($_POST, 1);
 
-// used to run querie to register user
-if ($handler->get_post_arg("mode") == "login_after_register") {
-    $loader = new Db_Loader();
-    $preparer = new Data_Preparer();
+$post_handler = new Post_Data_Handler($_POST);
 
-    $register_data = $handler->get_colective_data();
-    $hashed_register_data = [];
-    foreach ($register_data as $k=>$v) {
-        $hashed_register_data[$k] = $v;
-        if ($k == "password") {
-            $hashed_register_data[$k] = password_hash($v, PASSWORD_DEFAULT);
-        }
-    }
-    $is_successful_reg = $loader->register_user($hashed_register_data, $preparer);
+$loader = new Db_Loader();
+$preparer = new Data_Preparer();
+// object used to run queries
+$runner = new Query_Runner($loader, $preparer);
+
+// used to register user.
+if ($post_handler->get_post_arg("mode") == "login_after_register") {
+    $register_data = $post_handler->get_colective_data();
+    $shop = new Shop_Handler($runner);
+    $is_successful_reg = $shop->register_user($register_data);
 }
 
 // used to login, also used to login right after register
-if ($handler->get_post_arg("mode") == "login" or $is_successful_reg) {
+if ($post_handler->get_post_arg("mode") == "login" or $is_successful_reg) {
     print("<h1>Login page</h1>");
     $col_names = ["mail", "password"];
     $preset = FALSE;
@@ -35,16 +32,22 @@ if ($handler->get_post_arg("mode") == "login" or $is_successful_reg) {
         $col_names = ["mail"=>$register_data["mail"], "password"=>$register_data["password"]];
         $preset = TRUE;
     }
-    $text_form = new Text_Form([$col_names, ["mode"=>"login_attempt"]], "index.php", $preset, "f_a_btn_submit", "text_form");
+    $text_form = new Text_Form($col_names, "index.php", $preset, "text_form");
+    $text_form->set_hidden_data(["mode"=>"login_attempt"]);
     $text_form->create();
-} elseif($handler->get_post_arg("mode") == "register" or !$is_successful_reg) {
+} elseif($post_handler->get_post_arg("mode") == "register" or !$is_successful_reg) {
     print("<h1>Register page</h1>");
     $col_names = ["name", "surname", "mail", "password"];
-    $text_form = new Text_Form([$col_names, ["mode"=>"login_after_register"]], "login_page.php", FALSE, "f_a_btn_submit", "text_form");
+    $text_form = new Text_Form($col_names, "login_page.php", FALSE, "text_form");
+    $text_form->set_hidden_data(["mode"=>"login_after_register"]);
     $text_form->create();
 }
 
-$diff_table_btn = new Btn_Form("Go to the main page", "f_btn_submit", NULL, "index.php", "r_btn");
+$diff_table_btn = new Btn_Form();
+$diff_table_btn->set_text("Go to the main page");
+$diff_table_btn->set_name("f_btn_submit");
+$diff_table_btn->set_link("index.php");
+$diff_table_btn->set_class_name("r_btn");
 $diff_table_btn->create();
 ?>
 
