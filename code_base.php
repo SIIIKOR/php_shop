@@ -246,6 +246,7 @@ class Psql_Query_Select extends Psql_Query
             $query = "SELECT {$this->get_statement_values_str()}
                     FROM {$this->get_table_names_str()}";
         }
+
         if (isset($this->condition)) {
             $query .= " WHERE {$this->get_condition_str()}";
         }
@@ -386,111 +387,6 @@ class Psql_Query_Delete extends Psql_Query
     }
 }
 
-class Psql_Query_Select_Sq extends Psql_Query_Select
-{
-    protected $sq_statement_values;
-    protected $sq_table_names;
-    protected $sq_condition;
-    protected $sub_query_name;
-
-    function set_sub_query_name($sub_query_name)
-    {
-        $this->sub_query_name = $sub_query_name;
-    }
-
-    function set_sq_select_statement($sq_statement_values)
-    {
-        /**
-         * Method that sets array of col_names to select.
-         */
-        $this->sq_statement_values = $sq_statement_values;
-    }
-
-    function set_sq_from_statement($sq_table_names)
-    {
-        /**
-         * Method that sets array of table names with which statement will
-         * be performed.
-         * 
-         * @param array $w_table_names
-         */
-        $this->sq_table_names = $sq_table_names;
-    }
-
-    function set_sq_where_statement($sq_condition)
-    {
-        /**
-         * Method that sets key(col_name)=>value(col_value) array
-         */
-        $this->sq_condition = $sq_condition;
-    }
-
-    protected function get_sq_statement_values_str()
-    {
-        /**
-         * Method that transforms array to psql compatible statement fragment
-         * 
-         * @return string
-         */
-        return $this->prep->get_query_params($this->w_statement_values, "n");
-    }
-
-    protected function get_sq_table_names_str()
-    {
-        /**
-         * Method that transforms array to psql compatible statement fragment
-         * 
-         * @return string
-         */
-        return $this->prep->get_query_params($this->w_table_names, "n");
-    }
-
-    protected function get_sq_condition_str()
-    {
-        /**
-         * Method that transforms array to psql compatible statement fragment
-         * 
-         * @return string
-         */
-        return $this->prep->get_query_params($this->w_condition, "pk");
-    }
-
-    protected function get_query_contents()
-    {
-        /**
-         * Method that returns ready to be used selection query with single 'with' statement.
-         * 
-         * @return string
-         */
-
-        // When user don't choose subquery name.
-        if (!isset($this->sub_query_name)) {
-            $this->sub_query_name = "sq_name";
-        }
-
-        $w_query = new Psql_Query_Select();  // subquery
-        $w_query->set_preparer($this->prep);
-        $w_query->set_select_statement($this->sq_statement_values);
-        $w_query->set_from_statement($this->sq_table_names);
-        if (isset($this->sq_condition)) {
-            $w_query->set_where_statement($this->sq_condition);
-        }
-
-        $query = new Psql_Query_Select($this->is_distinct, $this->page_num, $this->records_per_page);  // query
-        $query->set_preparer($this->prep);
-        $query->set_select_statement($this->statement_values);
-        $query->set_from_statement($this->table_names);
-        if (isset($this->condition)) {
-            $query->set_where_statement($this->condition);
-        }
-
-        $final_query = "WITH {$this->sub_query_name} as 
-         ({$w_query->get_query(FALSE)})
-          {$query->get_query(FALSE)}";
-        return $final_query;
-    }
-}
-
 class Query_Runner
 /**
  * Class used to assemble and run queries on database.
@@ -529,6 +425,14 @@ class Query_Runner
          * Method used to pass dependency.
          */
         return $this->prep;
+    }
+
+    function run_query($query_str)
+    {
+        /**
+         * Method used to run custom queries.
+         */
+        return $this->loader->run_query($query_str);   
     }
 
     function get_table_names()
@@ -659,45 +563,6 @@ class Query_Runner
         return $data;
     }
 
-    function get_table_contents_sq($column_names, $table_names, $condition_arr, 
-                                   $sq_column_names, $sq_table_names, $sq_condition_arr, $sq_name=NULL,
-                                   $is_distinct=FALSE, $page_num=NULL, $records_per_page=NULL)
-    {
-        /**
-         * Method used to run psql select with single subquery.
-         * 
-         * @param array $column_name
-         * @param array $table_names
-         * @param array $sq_column_names
-         * @param array $sq_table_names
-         * @param array $sq_condition_arr
-         * @param bool $is_distinct
-         * @param integer $page_num
-         * @param integer $records_per_page
-         * @return array|bool
-         */
-        $query = new Psql_Query_Select_Sq($is_distinct, $page_num, $records_per_page);
-        $query->set_preparer($this->prep);
-
-        if (!is_null($sq_name)) {
-            $query->set_sub_query_name($sq_name);
-        }
-
-        $query->set_select_statement($column_names);
-        $query->set_from_statement($table_names);
-        if (!is_null($condition_arr)) {
-            $query->set_where_statement($condition_arr);
-        }
-
-        $query->set_sq_select_statement($sq_column_names);
-        $query->set_sq_from_statement($sq_table_names);
-        if (!is_null($sq_condition_arr)) {
-            $query->set_sq_where_statement($sq_condition_arr);
-        }
-        $data = $this->loader->run_query($query->get_query());
-        return $data;
-    }
-
     function insert_table_row($table_names, $values, $column_names=NULL, $return_id=FALSE)
     {
         /**
@@ -773,6 +638,7 @@ class Login_handler
     private $cookie_data;
     private $is_logged;
     private $is_admin;
+    private $user_id;
 
     function __construct($runner)
     {
@@ -840,6 +706,14 @@ class Login_handler
         return FALSE;
     }
 
+    function get_user_id()
+    {
+        if (isset($this->user_id)) {
+            return $this->user_id;
+        }
+        return FALSE;
+    }
+
     function logout()
     {
         /**
@@ -861,15 +735,23 @@ class Login_handler
          * @param string $mail
          * @return array
          */
-        $data = $this->run->get_table_contents_sq(
-            ["tokens.id", "cookie_token"], 
-            ["tokens", "user_ids"],
-            ["user_ids.id"=>["tokens.id", "symbolic"]],
-            ["id"],
-            ["users"],
-            ["mail"=>$mail],
-            "user_ids");
-        return $data[0];
+
+        $query = new Psql_Query_Select();
+        $query->set_preparer($this->prep);
+
+        $query->set_select_statement(["tokens.id", "cookie_token"]);
+        $query->set_from_statement(["tokens", "user_ids"]);
+        $query->set_where_statement(["user_ids.id"=>["tokens.id", "symbolic"]]);
+
+        $sub_query = new Psql_Query_Select();
+        $sub_query->set_preparer($this->prep);
+
+        $sub_query->set_select_statement(["id"]);
+        $sub_query->set_from_statement(["users"]);
+        $sub_query->set_where_statement(["mail"=>$mail]);
+        $query = "WITH user_ids as ({$sub_query->get_query(FALSE)})
+                  {$query->get_query(TRUE)}";
+        return $this->run->run_query($query)[0];
     }
 
     private function check_admin_status($user_id)
@@ -931,7 +813,8 @@ class Login_handler
                 $is_correct = password_verify($password, $db_password);
                 // second statment is used when password in db in not hashed(test purpose)
                 if ($is_correct or $password == $db_password) {
-                    return [TRUE, $this->check_admin_status($results["id"])];
+                    $this->user_id = $results["id"];
+                    return [TRUE, $this->check_admin_status($this->user_id)];
                 }
             } else {
                 $err_mess = "Unallowed input.<br>Try again.";
@@ -939,7 +822,8 @@ class Login_handler
         } elseif (isset($this->cookie_data)) { // login with token
             $token_data = $this->get_token_data_by_mail($this->cookie_data["mail"]);
             if ($this->cookie_data["cookie_token"] == $token_data["cookie_token"]) {
-                return [TRUE, $this->check_admin_status($token_data["id"])]; // data[0] is user_id
+                $this->user_id = $token_data["id"];
+                return [TRUE, $this->check_admin_status($this->user_id)]; // data[0] is user_id
             }
         }
         $err_mess = new Text_Field($err_mess, "err_mess");

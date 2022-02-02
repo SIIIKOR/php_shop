@@ -11,44 +11,44 @@
 <?php
 require_once("code_base.php");
 
+$post_handler = new Post_Data_Handler($_POST, 1);
 $loader = new Db_Loader();
 $preparer = new Data_Preparer();
-$handler = new Data_Handler($_POST);
+// object used to run queries
+$runner = new Query_Runner($loader, $preparer);
+// object used to procces login data
+$logger = new Login_handler($runner);
 
 // check login
-$login_data = $loader->check_login_status($_COOKIE, $preparer);
-$is_logged = $login_data[0];
-
-$group_id = $handler->get_colective_data();
-$condition = $preparer->get_query_params($group_id, "pk");
-$product_info = $loader->get_table_contents("product_groups", $condition)[0];
+if (isset($_COOKIE["cookie_token"])) {
+    $logger->set_login($_COOKIE, TRUE);
+}
+// fetch data based on id from post
+$group_id = $post_handler->get_colective_data()["id"];
+$product_info = $runner->get_table_contents(["*"], ["product_groups"], ["id"=>$group_id])[0];
 
 print("<h2>{$product_info["product_name"]}</h2>");
 
 $price = new Text_Field($product_info["price"], "price");
 $price->create();
 
-$cond_is_available = $group_id;
-$cond_is_available["is_available"] = 'TRUE';
-
-$condition = $preparer->get_query_params($cond_is_available, "pk");
-$instances_of_product = $loader->get_table_contents("products", $condition);
-if (is_array($instances_of_product)) {
-    $products_left = count($instances_of_product);
-} else {
-    $products_left = 0;
-}
+$instances_of_product = $runner->get_table_contents(
+    ["id"], ["products"], ["group_id"=>$group_id, "is_available"=>TRUE]);
+$products_left = count($instances_of_product);
 
 $price = new Text_Field("{$products_left} left", "avaliable");
 $price->create();
 
-if ($is_logged) {  // if user is logged in, enable him to add to cart
+if ($logger->is_logged()) {
     if ($products_left) {
         // if atleast one product is avaliable then we can pick by index 0
         $product_data = $instances_of_product[0];
-        $product_id = $product_data["product_id"];
-        $buy_btn = new Btn_Form("add to cart", "f_btn_submit", 
-         ["mode"=>"add_to_cart", "product_id" => $product_id], "cart.php", "r_btn");
+        $product_id = $product_data["id"];
+        $buy_btn = new Btn_Form(
+            ["mode"=>"add_to_cart", "product_id" => $product_id],
+             "cart.php", "r_btn");
+        $buy_btn->set_text("add to cart");
+        $buy_btn->set_name("f_btn_submit");
         $buy_btn->create();
     }
 }
@@ -56,12 +56,12 @@ if ($is_logged) {  // if user is logged in, enable him to add to cart
 $description = new Text_Field($product_info["description"], "description");
 $description->create();
 
-$login_data = $loader->check_login_status($_COOKIE, $preparer);
-$is_logged = $login_data[0];
-$is_admin = $login_data[1];
-
-$diff_table_btn = new Btn_Form("Go to the main page", "f_btn_submit", NULL, "index.php", "r_btn");
-$diff_table_btn->create();
+$back_btn = new Btn_Form();
+$back_btn->set_text("Go to the main page");
+$back_btn->set_name("f_btn_submit");
+$back_btn->set_link("index.php");
+$back_btn->set_class_name("r_btn");
+$back_btn->create();
 ?>
 
 </body>

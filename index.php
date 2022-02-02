@@ -53,7 +53,7 @@ if ($logger->is_logged()) {
     $login_mess->create();
 
     $logout_btn = new Btn_Form();
-    $logout_btn->set_text("logut");
+    $logout_btn->set_text("logout");
     $logout_btn->set_name("f_btn_submit");
     $logout_btn->set_class_name("r_btn");
     $logout_btn->set_hidden_data(["mode"=>"logout"]);
@@ -66,9 +66,9 @@ if ($logger->is_logged()) {
         $admin_btn->set_name("f_btn_submit");
         $admin_btn->set_link("crud_main_page.php");
         $ul_content = "<ul>
-                        <li>{$admin_btn->get_html()}</li>
-                        <li>{$logout_btn->get_html()}</li>
-                        </ul>";
+                       <li>{$admin_btn->get_html()}</li>
+                       <li>{$logout_btn->get_html()}</li>
+                       </ul>";
     } else { // customer mode
         $cart_btn = new Btn_Form();
         $cart_btn->set_text("cart");
@@ -83,10 +83,10 @@ if ($logger->is_logged()) {
         $orders_btn->set_link("orders.php");
 
         $ul_content = "<ul>
-                        <li>{$cart_btn->get_html()}</li>
-                        <li>{$orders_btn->get_html()}</li>
-                        <li>{$logout_btn->get_html()}</li>
-                        </ul>";
+                       <li>{$cart_btn->get_html()}</li>
+                       <li>{$orders_btn->get_html()}</li>
+                       <li>{$logout_btn->get_html()}</li>
+                       </ul>";
     }
 } else {
     // if user isn't logged in then he is in guest mode.

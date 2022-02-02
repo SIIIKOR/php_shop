@@ -43,12 +43,12 @@ if ($post_handler->get_post_arg("mode") == "login" or $is_successful_reg) {
     $text_form->create();
 }
 
-$diff_table_btn = new Btn_Form();
-$diff_table_btn->set_text("Go to the main page");
-$diff_table_btn->set_name("f_btn_submit");
-$diff_table_btn->set_link("index.php");
-$diff_table_btn->set_class_name("r_btn");
-$diff_table_btn->create();
+$back_btn = new Btn_Form();
+$back_btn->set_text("Go to the main page");
+$back_btn->set_name("f_btn_submit");
+$back_btn->set_link("index.php");
+$back_btn->set_class_name("r_btn");
+$back_btn->create();
 ?>
 
 </body>
