@@ -24,6 +24,25 @@ if (isset($_COOKIE["cookie_token"])) {
 
 if ($logger->is_logged()) {
     $post_handler = new Post_Data_Handler($_POST);
+    // delete product from cart
+    if ($post_handler->get_post_arg("mode") == "out_cart_id") {
+        $product_id = $post_handler->get_post_arg("id");
+        $runner->delete_table_row(["cart"], ["id"=>$product_id]);
+        $runner->update_table_row(["is_available"=>TRUE], ["products"], ["id"=>$product_id]);
+    }
+    // if user just added product to cart.
+    if ($post_handler->get_post_arg("mode") == "add_to_cart") {
+        // get product id.
+        $product_id = $post_handler->get_post_arg("id");
+        // insert data into database.
+        $runner->insert_table_row(["cart"], [$product_id, $logger->get_user_id()]);
+        // change availability status
+        $runner->update_table_row(["is_available"=>FALSE], ["products"], ["id"=>$product_id]);
+    }
+
+    // create table with user's car contents.
+    $shop = new Shop_Handler($runner);
+    $shop->set_user_id($logger->get_user_id());
     // how many records will be displayed per page
     $records_per_page = 5;
     $page_num = $post_handler->get_post_arg("page_num");
@@ -31,43 +50,34 @@ if ($logger->is_logged()) {
         // if pagination wasn't used yet.
         $page_num = 0;
     }
-    // delete product from cart
-    if ($post_handler->get_post_arg("mode") == "out_cart_id") {
-        $product_id = $post_handler->get_post_arg("product_id");
-        $runner->delete_table_row(["cart"], ["id"=>$product_id]);
-        $runner->update_table_row(["is_available"=>TRUE], ["products"], ["id"=>$product_id]);
-    }
-    // if user just added product to cart.
-    if ($post_handler->get_post_arg("mode") == "add_to_cart") {
-        // get product id.
-        $product_id = $post_handler->get_post_arg("product_id");
-        // insert data into database.
-        $runner->insert_table_row(["cart"], [$product_id, $logger->get_user_id()]);
-        // change availability status
-        $runner->update_table_row(["is_available"=>FALSE], ["products"], ["id"=>$product_id]);
-    }
-    // create table with user's car contents.
-    $cart_contents_data = $runner->get_table_contents_sq();
-    $cart_contents_data = $loader->get_cart_contents($user_id, "cart", FALSE, $page_num, $records_per_page);
-    if (is_array($cart_contents_data)) {
-        $cart_contents = new Table($cart_contents_data, NULL, ["product_id"=>1], NULL, $page_num, "cart.php");    
+    $cart_contents_data = $shop->get_cart_contents(FALSE, $page_num, $records_per_page);
+    $total_row_count = $shop->get_cart_contents(TRUE);
+    if (is_array($cart_contents_data) and $total_row_count>0) {
+        $cart_contents = new Table($cart_contents_data);
+        $cart_contents->set_primary_keys(["id"]);
         $cart_contents->set_btn_data(["mode"=>"out_cart_id"]);
+        $cart_contents->set_btn_link("cart.php");
         $cart_contents->create();
     }
     // create pagination so that users can display big amounts of data.
-    $total_row_count = $loader->get_cart_contents($user_id, "cart", TRUE)[0]["count"];
-    $pagination = new Pagination(NULL, $page_num, $records_per_page, $total_row_count, "cart.php");
+    $pagination = new Pagination($page_num, $records_per_page, $total_row_count, "cart.php");
     $pagination->create();
 
-    $place_order = new Btn_Form("Place your order", "f_btn_submit", ["mode"=>"place_order"], "orders.php", "r_btn");
+    $place_order = new Btn_Form(["mode"=>"place_order"], "orders.php", "r_btn");
+    $place_order->set_text("Place your order");
+    $place_order->set_name("f_btn_submit");
     $place_order->create();
 } else {
     $login_mess = new Text_Field("You should be logged in to display your cart.", "login_mess");
     $login_mess->create();
 }
 
-$diff_table_btn = new Btn_Form("Go to the main page", "f_btn_submit", NULL, "index.php", "r_btn");
-$diff_table_btn->create();
+$back_btn = new Btn_Form();
+$back_btn->set_text("Go to the main page");
+$back_btn->set_name("f_btn_submit");
+$back_btn->set_link("index.php");
+$back_btn->set_class_name("r_btn");
+$back_btn->create();
 ?>
 
 </body>

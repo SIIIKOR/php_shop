@@ -440,7 +440,6 @@ class Query_Runner
         /**
          * Method used to return all table names in database.
          * 
-         * @return array|bool
          */
         $query = new Psql_Query_Select();
         $query->set_preparer($this->prep);
@@ -626,7 +625,6 @@ class Query_Runner
 
         $query->set_from_statement($table_names);
         $query->set_where_statement($condition_arr);
-
         $data = $this->loader->run_query($query->get_query());
         return $data;
     }
@@ -749,9 +747,10 @@ class Login_handler
         $sub_query->set_select_statement(["id"]);
         $sub_query->set_from_statement(["users"]);
         $sub_query->set_where_statement(["mail"=>$mail]);
-        $query = "WITH user_ids as ({$sub_query->get_query(FALSE)})
-                  {$query->get_query(TRUE)}";
-        return $this->run->run_query($query)[0];
+        
+        $final_query = "WITH user_ids as ({$sub_query->get_query(FALSE)})
+                  {$query->get_query()}";
+        return $this->run->run_query($final_query)[0];
     }
 
     private function check_admin_status($user_id)
@@ -836,6 +835,7 @@ class Shop_Handler
 {
     private $run;
     private $prep;
+    private $user_id;
 
     function __construct($runner)
     {
@@ -862,6 +862,11 @@ class Shop_Handler
         $this->prep = $preparer;
     }
 
+    function set_user_id($user_id)
+    {
+        $this->user_id = $user_id;
+    }
+
     function register_user($register_data_array)
     {
         /**
@@ -883,6 +888,34 @@ class Shop_Handler
         $err_mess = new Text_Field("Unallowed input.<br>Try again.", "err_mess");
         $err_mess->create();
         return FALSE;
+    }
+
+    function get_cart_contents($count=FALSE, $page_num=NULL, $records_per_page=NULL)
+    {
+        $sub_query = new Psql_Query_Select();
+        $sub_query->set_preparer($this->prep);
+
+        $sub_query->set_select_statement(["id"]);
+        $sub_query->set_from_statement(["cart"]);
+        $sub_query->set_where_statement(["user_id"=>$this->user_id]);
+
+        $query = new Psql_Query_Select(FALSE, $page_num, $records_per_page);
+        $query->set_preparer($this->prep);
+        if ($count) {
+            $query->set_select_statement(["count(*)"]);
+        } else {
+            $query->set_select_statement(["prod_ids.id", "product_name", "price", "category_name"]);
+        }
+        $query->set_from_statement(["product_groups", "products", "prod_ids"]);
+        $query->set_where_statement(
+            ["prod_ids.id"=>["products.id", "symbolic"],
+             "products.group_id"=>["product_groups.id", "symbolic"]]);
+        $final_query = "WITH prod_ids as ({$sub_query->get_query(FALSE)})
+                        {$query->get_query()}";
+        if ($count) {
+            return $this->run->run_query($final_query)[0]["count"];
+        }
+        return $this->run->run_query($final_query);
     }
 }
 
@@ -1695,7 +1728,7 @@ class Table extends Html_Object
          * 
          * @param array $table_data
          */
-        return array_keys($this->table_data[0]);
+        return array_flip(array_keys($this->table_data[0]));
     }
 
     private function get_table_row($data_row, $type = "td")

@@ -45,7 +45,7 @@ if ($logger->is_logged()) {
         $product_data = $instances_of_product[0];
         $product_id = $product_data["id"];
         $buy_btn = new Btn_Form(
-            ["mode"=>"add_to_cart", "product_id" => $product_id],
+            ["mode"=>"add_to_cart", "id" => $product_id],
              "cart.php", "r_btn");
         $buy_btn->set_text("add to cart");
         $buy_btn->set_name("f_btn_submit");
