@@ -112,10 +112,8 @@ if ($logger->is_logged()) {
                    <li>{$register_btn->get_html()}</li>
                    </ul>";
 }
-
 // display user panel.
 print($ul_content);
-
 // get names of categories and create buttons to choose them.
 $category_names_query_output = $runner->get_table_contents(["category_name"], ["product_groups"], NULL, TRUE);
 $category_names = $preparer->get_query_output_col_to_list($category_names_query_output);
@@ -123,7 +121,6 @@ array_push($category_names, "reset"); // adds additional reset btn
 // creates btns used to select desired category name
 $category_btn = new Multichoice_Btn_Form($category_names, "category_name", "index.php", "cat_multi_btns");
 $category_btn->create();
-
 // after using category_btn
 $category_name = $post_handler->get_post_arg("category_name");
 
@@ -135,7 +132,6 @@ if ($category_name) {  // if cat_multi_btns was pressed
         $condition_arr = ["category_name"=>$category_name];
     }
 }
-
 // how many records will be displayed per page
 $records_per_page = 5;
 $page_num = $post_handler->get_post_arg("page_num");
@@ -143,20 +139,17 @@ if (!$page_num) {
     // if pagination wasn't used yet.
     $page_num = 0;
 }
-
 // desired column names to display
 $col_names = ["id", "product_name", "category_name", "price"];
 // fetched contents.
 $shop_contents = $runner->get_table_contents(
     $col_names, ["product_groups"], $condition_arr, 
     FALSE, $page_num, $records_per_page);
-
 // create table with shop contents
 $table = new Table($shop_contents, array_slice($col_names, 1));
 $table->set_primary_keys(["id"]);
 $table->set_btn_link("product_page.php");
 $table->create();
-
 // create pagination
 $total_row_count = $runner->get_table_row_amount("product_groups");
 $pagination = new Pagination($page_num, $records_per_page, $total_row_count, "index.php");
