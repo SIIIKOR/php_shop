@@ -116,8 +116,6 @@ if ($logger->is_logged()) {
 // display user panel.
 print($ul_content);
 
-
-
 // get names of categories and create buttons to choose them.
 $category_names_query_output = $runner->get_table_contents(["category_name"], ["product_groups"], NULL, TRUE);
 $category_names = $preparer->get_query_output_col_to_list($category_names_query_output);
