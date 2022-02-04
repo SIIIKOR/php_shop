@@ -68,12 +68,12 @@ if ($logger->is_logged()) {
     $login_mess->create();
 }
 
-$back_btn = new Btn_Form();
-$back_btn->set_text("Go to the main page");
-$back_btn->set_name("f_btn_submit");
-$back_btn->set_link("index.php");
-$back_btn->set_class_name("r_btn");
-$back_btn->create();
+$go_main_page_btn = new Btn_Form();
+$go_main_page_btn->set_text("Go to the main page");
+$go_main_page_btn->set_name("f_btn_submit");
+$go_main_page_btn->set_link("index.php");
+$go_main_page_btn->set_class_name("r_btn");
+$go_main_page_btn->create();
 ?>
 
 </body>

@@ -919,10 +919,11 @@ class Shop_Handler
         $query = new Psql_Query_Select(FALSE, $page_num, $records_per_page);
         $query->set_preparer($this->prep);
         if ($count) {
-            $query->set_select_statement(["count(*)"]);
+            $col_names = ["count(*)"];
         } else {
-            $query->set_select_statement(["prod_ids.id", "product_name", "price", "category_name"]);
+            $col_names = ["prod_ids.id", "product_name", "price", "category_name"];
         }
+        $query->set_select_statement($col_names);
         $query->set_from_statement(["product_groups", "products", "prod_ids"]);
         $query->set_where_statement(
             ["prod_ids.id"=>["products.id", "symbolic"],
@@ -984,6 +985,35 @@ class Shop_Handler
             $this->run->update_table_row(["order_id"=>$order_id], ["products"],["id"=>$product_row["id"]]);
             $this->run->delete_table_row(["cart"], ["id"=>$product_row["id"]]);
         }
+    }
+
+    function get_order_product_info($order_id, $count=FALSE, $page_num=NULL, $records_per_page=NULL)
+    {
+        /**
+         * Method used to get info about products that are in specific order.
+         */
+
+        $sub_query = new Psql_Query_Select();
+        $sub_query->set_preparer($this->prep);
+
+        $sub_query->set_select_statement(["id", "group_id"]);
+        $sub_query->set_from_statement(["products"]);
+        $sub_query->set_where_statement(["order_id"=>$order_id]);
+
+        $query = new Psql_Query_Select(FALSE, $page_num, $records_per_page);
+        $query->set_preparer($this->prep);
+        if ($count) {
+            $col_names = ["count(*)"];
+        } else {
+            $col_names = ["prod_ids.id", "product_name", "category_name", "price"];
+        }
+        $query->set_select_statement($col_names);
+        $query->set_from_statement(["product_groups", "prod_ids"]);
+        $query->set_where_statement(["prod_ids.group_id"=>["product_groups.id", "symbolic"]]);
+
+        $final_query = "WITH prod_ids as ({$sub_query->get_query(FALSE)})
+                        {$query->get_query()}";
+        return $this->run->run_query($final_query);
     }
 }
 
@@ -1901,6 +1931,7 @@ class Pagination extends Html_Object
     private $page_num;
     private $records_per_page;
     private $total_row_count;
+    private $btn_data;
     private $link;
 
     function __construct($page_num, $records_per_page, $total_row_count, $link, $class_name = "comb_pagination", $id_name = NULL)
@@ -1913,23 +1944,33 @@ class Pagination extends Html_Object
         $this->id_name = $id_name;
     }
 
-    function set_table_name($table_name) {
+    function set_table_name($table_name)
+    {
         $this->table_name = $table_name;
     }
 
-    function set_page_num($page_num) {
+    function set_page_num($page_num)
+    {
         $this->page_num = $page_num;
     }
 
-    function set_records_per_page($records_per_page) {
+    function set_records_per_page($records_per_page)
+    {
         $this->records_per_page = $records_per_page;
     }
 
-    function set_total_row_count($total_row_count) {
+    function set_total_row_count($total_row_count)
+    {
         $this->total_row_count = $total_row_count;
     }
 
-    function set_link($link) {
+    function set_btn_data($btn_data)
+    {
+        $this->btn_data = $btn_data;
+    }
+
+    function set_link($link)
+    {
         $this->link = $link;
     }
 
@@ -1944,7 +1985,11 @@ class Pagination extends Html_Object
             // Creates pagination that allows user to go left.
             $new_page_num = $this->page_num - 1;
             $post_data["page_num"] = $new_page_num;
-            
+            if (isset($this->btn_data)) {
+                foreach ($this->btn_data as $k=>$v) {
+                    $post_data[$k] = $v;
+                }
+            }
             $pagi_btn = new Btn_Form($post_data, $this->link);
             $pagi_btn->set_text("left");
             $pagi_btn->set_name("form_pagi_left_btn");
@@ -1955,7 +2000,11 @@ class Pagination extends Html_Object
             // Creates pagination that allows user to go right.
             $new_page_num = $this->page_num + 1;
             $post_data["page_num"] = $new_page_num;
-            
+            if (isset($this->btn_data)) {
+                foreach ($this->btn_data as $k=>$v) {
+                    $post_data[$k] = $v;
+                }
+            }
             $pagi_btn = new Btn_Form($post_data, $this->link);
             $pagi_btn->set_text("right");
             $pagi_btn->set_name("form_pagi_right_btn");
