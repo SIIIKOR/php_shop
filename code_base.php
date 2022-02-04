@@ -892,6 +892,14 @@ class Shop_Handler
 
     function get_cart_contents($count=FALSE, $page_num=NULL, $records_per_page=NULL)
     {
+        /**
+         * Method used to get cart contents by user id.
+         * 
+         * @param bool $count if true amount of rows will be returned
+         * @param int $page_num
+         * @param int $records_per_page
+         * @return int|array
+         */
         $sub_query = new Psql_Query_Select();
         $sub_query->set_preparer($this->prep);
 
