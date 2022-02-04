@@ -24,25 +24,21 @@ if (isset($_COOKIE["cookie_token"])) {
 
 if ($logger->is_logged()) {
     $post_handler = new Post_Data_Handler($_POST);
+    $shop = new Shop_Handler($runner);
+    $shop->set_user_id($logger->get_user_id());
+
     // delete product from cart
     if ($post_handler->get_post_arg("mode") == "out_cart_id") {
         $product_id = $post_handler->get_post_arg("id");
-        $runner->delete_table_row(["cart"], ["id"=>$product_id]);
-        $runner->update_table_row(["is_available"=>TRUE], ["products"], ["id"=>$product_id]);
+        $shop->delete_from_cart($product_id);
     }
     // if user just added product to cart.
     if ($post_handler->get_post_arg("mode") == "add_to_cart") {
         // get product id.
         $product_id = $post_handler->get_post_arg("id");
-        // insert data into database.
-        $runner->insert_table_row(["cart"], [$product_id, $logger->get_user_id()]);
-        // change availability status
-        $runner->update_table_row(["is_available"=>FALSE], ["products"], ["id"=>$product_id]);
+        $shop->add_to_cart($product_id);
     }
-
     // create table with user's car contents.
-    $shop = new Shop_Handler($runner);
-    $shop->set_user_id($logger->get_user_id());
     // how many records will be displayed per page
     $records_per_page = 5;
     $page_num = $post_handler->get_post_arg("page_num");

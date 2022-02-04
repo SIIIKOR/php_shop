@@ -631,6 +631,12 @@ class Query_Runner
 }
 
 class Login_handler
+/**
+ * Class used to handle logging in.
+ * Users login via this class.
+ * Their login status is sustained via this class with cookies.
+ * Admin status and user_id is gathered here.
+ */
 {
     private $user_login_data;
     private $cookie_data;
@@ -832,6 +838,9 @@ class Login_handler
 }
 
 class Shop_Handler
+/**
+ * Class that is collection of methods useful for shop.
+ */
 {
     private $run;
     private $prep;
@@ -893,7 +902,7 @@ class Shop_Handler
     function get_cart_contents($count=FALSE, $page_num=NULL, $records_per_page=NULL)
     {
         /**
-         * Method used to get cart contents by user id.
+         * Method used to get product info for users cart.
          * 
          * @param bool $count if true amount of rows will be returned
          * @param int $page_num
@@ -925,9 +934,63 @@ class Shop_Handler
         }
         return $this->run->run_query($final_query);
     }
+
+    function add_to_cart($product_id)
+    {
+        /**
+         * Method used to add product to users cart.
+         * 
+         * @param integer $product_id
+         */
+
+        // insert data into database.
+        $this->run->insert_table_row(["cart"], [$product_id, $this->user_id]);
+        // change availability status
+        $this->run->update_table_row(["is_available"=>FALSE], ["products"], ["id"=>$product_id]);
+    }
+
+    function delete_from_cart($product_id)
+    {
+        /**
+         * Method used to delete product from users cart.
+         * 
+         * @param integer $product_id
+         */
+
+        // delete row with product id from cart
+        $this->run->delete_table_row(["cart"], ["id"=>$product_id]);
+        // modify availability
+        $this->run->update_table_row(["is_available"=>TRUE], ["products"], ["id"=>$product_id]);
+    }
+
+    function create_new_order()
+    {
+        /**
+         * Method that creates new order for user.
+         * Reassigns products from cart to specific order id.
+         * 
+         * @param int $user_id
+         */
+
+        // create new order
+        $order_id = $this->run->insert_table_row(
+            ["orders"], [$this->user_id, date("Y-m-d H:i:s")],
+            ["user_id", "order_placed_date"], true);
+        // get ids of products in users cart
+        $cart_contents = $this->run->get_table_contents(
+            ["id"], ["cart"], ["user_id"=>$this->user_id]);
+        // assign each product in cart to order and delete it from the cart
+        foreach ($cart_contents as $product_row) {
+            $this->run->update_table_row(["order_id"=>$order_id], ["products"],["id"=>$product_row["id"]]);
+            $this->run->delete_table_row(["cart"], ["id"=>$product_row["id"]]);
+        }
+    }
 }
 
 class Crud_Handler
+/**
+ * Class with methods useful for crud.
+ */
 {   
     private $handl;
     private $run;
