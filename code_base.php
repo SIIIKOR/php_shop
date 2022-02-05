@@ -992,9 +992,9 @@ class Crud_Handler
             if ($action == "update") {
                 $this->run->update_table_row($user_input_arr, [$table_name], $hidden_data_arr);
             } elseif ($action == "delete") {
-                $this->run->delete_table_row($table_name, $hidden_data_arr);
+                $this->run->delete_table_row([$table_name], $user_input_arr);
             } elseif ($action == "insert") {
-                $this->run->insert_table_row($table_name, $user_input_arr);
+                $this->run->insert_table_row([$table_name], $user_input_arr);
             }
         } else {
             $err_mess = new Text_Field("Unallowed input.<br>Try again.", "err_mess");
@@ -1089,13 +1089,16 @@ class Post_Data_Handler
          * 
          * @return array
          */
-        $colective_data_amount = count($this->post_data) - $this->predef_par_amount - $this->get_identified_data_amount();;
-        $identified_data = array_slice($this->post_data, $colective_data_amount, $this->get_identified_data_amount());
-        $unidentified_data = [];
-        foreach ($identified_data as $k=>$v) {
-            $unidentified_data[explode("-", $k)[1]] = $v;
+        if (!is_null($this->id)) {
+            $colective_data_amount = count($this->post_data) - $this->predef_par_amount - $this->get_identified_data_amount();;
+            $identified_data = array_slice($this->post_data, $colective_data_amount, $this->get_identified_data_amount());
+            $unidentified_data = [];
+            foreach ($identified_data as $k=>$v) {
+                $unidentified_data[explode("-", $k)[1]] = $v;
+            }
+            return $unidentified_data;
         }
-        return $unidentified_data;
+        return FALSE;
     }
 
     function handle_form()

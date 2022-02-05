@@ -39,8 +39,10 @@ if ($logger->is_admin()) {
     $text_form->set_btn_name("f_u_btn_submit");
     $text_form->create();
 
-    // $diff_table_btn = new Btn_Form("Delete", "f_d_btn_submit", array_merge($cond_values, $r_data), "display_table.php", "r_btn");
-    // $diff_table_btn->create();
+    $diff_table_btn = new Btn_Form(array_merge($pk_values, $r_data, ["mode"=>"delete"]), "display_table.php", "r_btn");
+    $diff_table_btn->set_text("Delete");
+    $diff_table_btn->set_name("f_d_btn_submit");
+    $diff_table_btn->create();
     
     $diff_table_btn = new Btn_Form($r_data, "display_table.php", "r_btn");
     $diff_table_btn->set_text("Go back");
