@@ -35,8 +35,10 @@ if ($logger->is_logged()) {
     $order_id = intval($handler->get_post_arg("id"));
 
     $order_contents = $shop->get_order_product_info($order_id, FALSE, $page_num, $records_per_page);
-    $table = new Table($order_contents);
-    $table->create();
+    if (!empty($order_contents)) {
+        $table = new Table($order_contents);
+        $table->create();
+    }
 
     $total_row_count = $shop->get_order_product_info($order_id, TRUE)[0]["count"];
     $pagination = new Pagination($page_num, $records_per_page, $total_row_count, "order_display.php");

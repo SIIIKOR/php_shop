@@ -146,10 +146,12 @@ $shop_contents = $runner->get_table_contents(
     $col_names, ["product_groups"], $condition_arr, 
     FALSE, $page_num, $records_per_page);
 // create table with shop contents
-$table = new Table($shop_contents, array_slice($col_names, 1));
-$table->set_primary_keys(["id"]);
-$table->set_btn_link("product_page.php");
-$table->create();
+if (!empty($shop_contents)) {
+    $table = new Table($shop_contents, array_slice($col_names, 1));
+    $table->set_primary_keys(["id"]);
+    $table->set_btn_link("product_page.php");
+    $table->create();
+}
 // create pagination
 $total_row_count = $runner->get_table_row_amount("product_groups");
 $pagination = new Pagination($page_num, $records_per_page, $total_row_count, "index.php");
