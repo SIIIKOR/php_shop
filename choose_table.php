@@ -31,7 +31,7 @@ if ($logger->is_admin()) {
     } elseif($post_handler->get_post_arg("mode") == "add") {
         $link = "add_record.php";
     } else {
-        $crud_handler = new Crud_Handler($post_handler, $runner);
+        $crud_handler = new Crud_Handler($post_handler, $runner, $preparer);
         $crud_handler->handle_crud_action();
         $link = "add_record.php";
     }
