@@ -11,7 +11,6 @@
 <?php
 require_once("code_base.php");
 
-$post_handler = new Post_Data_Handler($_POST);
 $loader = new Db_Loader();
 $preparer = new Data_Preparer();
 // object used to run queries

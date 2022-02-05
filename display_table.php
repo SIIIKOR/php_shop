@@ -11,7 +11,6 @@
 <?php
 require_once("code_base.php");
 
-$post_handler = new Post_Data_Handler($_POST);
 $loader = new Db_Loader();
 $preparer = new Data_Preparer();
 // object used to run queries
@@ -32,7 +31,7 @@ if ($logger->is_admin()) {
     if (!$page_num) {
         $page_num = 0;
     }
-    $crud_handler = new Crud_Handler($post_handler, $runner);
+    $crud_handler = new Crud_Handler($post_handler, $runner, $preparer);
     $crud_handler->handle_crud_action();
 
     $table_name = $post_handler->get_post_arg("table_name");

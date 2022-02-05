@@ -401,24 +401,6 @@ class Query_Runner
         $this->prep = $preparer;
     }
 
-    function set_loader($loader)
-    {
-        /**
-         * Dependency injection.
-         * Method used to inject loader class.
-         */
-        $this->loader = $loader;
-    }
-
-    function set_preparer($preparer)
-    {
-        /**
-         * Dependency injection.
-         * Method used to inject preparer class.
-         */
-        $this->prep = $preparer;
-    }
-
     function give_preparer()
     {
         /**
@@ -504,7 +486,7 @@ class Query_Runner
     function get_primary_key_names()
     {
         /**
-         * Method that returns key(table_name)=>value(set of primary key names)
+         * Method that returns key(table_name)=>value(list of primary key names)
          * 
          * @return array|bool
          */
@@ -527,11 +509,13 @@ class Query_Runner
             $val = $row["pg_get_constraintdef"];
             preg_match("/\((.*)\)/", $val, $matches);
             $pk_list = explode(", ", $matches[1]);
-            $pk_set = [];
-            foreach ($pk_list as $el) {
-                $pk_set[$el] = TRUE;
-            }
-            $out[$row["table_name"]] = $pk_set;
+
+            // if return set instead of list
+            // $pk_set = [];
+            // foreach ($pk_list as $el) {
+            //     $pk_set[$el] = TRUE;
+            // }
+            $out[$row["table_name"]] = $pk_list;
         }
         return $out;
     }
@@ -606,7 +590,6 @@ class Query_Runner
         $query->set_update_statement($update_values);
         $query->set_from_statement($table_names);
         $query->set_where_statement($condition_arr);
-
         $data = $this->loader->run_query($query->get_query());
         return $data;
     }
@@ -648,27 +631,6 @@ class Login_handler
     {
         $this->run = $runner;
         $this->prep = $runner->give_preparer();
-    }
-
-    function set_runner($runner)
-    {
-        /**
-         * Dependency injection.
-         * Method used to inject runner class.
-         */
-        $this->run = $runner;
-        if (!isset($this->prep)) {
-            $this->prep = $runner->give_preparer();
-        }
-    }
-
-    function set_preparer($preparer)
-    {
-        /**
-         * Dependency injection.
-         * Method used to inject preparer class.
-         */
-        $this->prep = $preparer;
     }
 
     function set_login($login_data, $is_cookie=FALSE)
@@ -852,25 +814,6 @@ class Shop_Handler
         $this->prep = $runner->give_preparer();
     }
 
-    function set_runner($runner)
-    {
-        /**
-         * Dependency injection.
-         * Method used to inject runner class.
-         */
-        $this->run = $runner;
-        $this->prep = $runner->give_preparer();
-    }
-
-    function set_preparer($preparer)
-    {
-        /**
-         * Dependency injection.
-         * Method used to inject preparer class.
-         */
-        $this->prep = $preparer;
-    }
-
     function set_user_id($user_id)
     {
         $this->user_id = $user_id;
@@ -1024,29 +967,13 @@ class Crud_Handler
 {   
     private $post_handl;
     private $run;
+    private $prep;
 
-    function __construct($post_handler, $runner)
+    function __construct($post_handler, $runner, $preparer)
     {
         $this->post_handl = $post_handler;
         $this->run = $runner;
-    }
-
-    function set_post_handler($post_handler)
-    {
-        /**
-         * Dependency injection.
-         * Method used to inject post_handler class.
-         */
-        $this->post_handl = $post_handler;
-    }
-
-    function set_runner($runner)
-    {
-        /**
-         * Dependency injection.
-         * Method used to inject runner class.
-         */
-        $this->run = $runner;
+        $this->prep = $preparer;
     }
 
     function handle_crud_action()
@@ -1060,20 +987,18 @@ class Crud_Handler
         $action = $action_arr[0];
         $user_input_arr = $action_arr[1];  // data provided by user, usually in text form.
         $hidden_data_arr = $action_arr[2];  // primary keys used in creating where statement.
-        if ($action) {
-            if ($this->prep->check_user_input($user_input_arr, "/^[\w\s.@]+$/")) {
-                $table_name = $this->post_handl->get_post_arg("table_name");
-                if ($action == "update") {
-                    $this->run->update_table_row($user_input_arr, $table_name, $hidden_data_arr);
-                } elseif ($action == "delete") {
-                    $this->run->delete_table_row($table_name, $hidden_data_arr);
-                } else {  // insert
-                    $this->run->insert_table_row($table_name, $user_input_arr);
-                }
-            } else {
-                $err_mess = new Text_Field("Unallowed input.<br>Try again.", "err_mess");
-                $err_mess->create();
+        if ($this->prep->check_user_input($user_input_arr, "/^[\w\s.@]+$/")) {
+            $table_name = $this->post_handl->get_post_arg("table_name");
+            if ($action == "update") {
+                $this->run->update_table_row($user_input_arr, [$table_name], $hidden_data_arr);
+            } elseif ($action == "delete") {
+                $this->run->delete_table_row($table_name, $hidden_data_arr);
+            } elseif ($action == "insert") {
+                $this->run->insert_table_row($table_name, $user_input_arr);
             }
+        } else {
+            $err_mess = new Text_Field("Unallowed input.<br>Try again.", "err_mess");
+            $err_mess->create();
         }
     }
 }
@@ -1087,11 +1012,20 @@ class Post_Data_Handler
     private $predef_par_amount;
     private $id;
 
-    function __construct($post_data, $predef_par_amount=2)
+    function __construct($post_data)
     {
         $this->post_data = $post_data;
-        $this->predef_par_amount = $predef_par_amount;
+        $this->predef_par_amount = 1;
         $this->id = $this->get_identifier();
+        if (isset($post_data["page_num"])) {
+            $this->predef_par_amount += 1;
+        }
+        if (isset($post_data["table_name"])) {
+            $this->predef_par_amount += 1;
+        }
+        if (isset($post_data["mode"])) {
+            $this->predef_par_amount += 1;
+        }
     }
 
     function get_post_arg($arg_name)
@@ -1123,24 +1057,12 @@ class Post_Data_Handler
          * Method that returns id string.
          * 
          */
-        if (isset($this->post_data["id"])) {
+        if (isset($this->post_data["ident"])) {
             // adds 2 because of key-value pair with id string and identified data amount
             $this->predef_par_amount += 2;
-            return $this->post_data["id"];
+            return $this->post_data["ident"];
         }
         return NULL;
-    }
-
-    private function get_colective_data_end_index()
-    {
-        /**
-         * Method that returns index of the last key-value pair
-         * which is not identified data nor predef.
-         * 
-         * @return integer
-         */
-        $iden_amount = $this->get_identified_data_amount();
-        return count($this->post_data) - $iden_amount - $this->predef_par_amount;
     }
 
     function get_colective_data()
@@ -1152,14 +1074,14 @@ class Post_Data_Handler
          * 
          * @return array
          */
-        $cd_end_index = -$this->predef_par_amount;
-        if ($this->id) {
-            $cd_end_index = $this->get_colective_data_end_index($this->predef_par_amount, $this->id);
+        $colective_data_amount = count($this->post_data) - $this->predef_par_amount;
+        if (isset($this->id)) {
+            $colective_data_amount -= $this->get_identified_data_amount();
         }
-        return array_slice($this->post_data, 0, $cd_end_index);
+        return array_slice($this->post_data, 0, $colective_data_amount);
     }
 
-    private function get_identified_data()
+    function get_identified_data()
     {
         /**
          * Method that return key-value array made of purely identified data from post.
@@ -1167,8 +1089,8 @@ class Post_Data_Handler
          * 
          * @return array
          */
-        $identified_data_start = - $this->predef_par_amount - $this->get_identified_data_amount() -1;
-        $identified_data = array_slice($this->post_data, $identified_data_start, -$this->predef_par_amount);
+        $colective_data_amount = count($this->post_data) - $this->predef_par_amount - $this->get_identified_data_amount();;
+        $identified_data = array_slice($this->post_data, $colective_data_amount, $this->get_identified_data_amount());
         $unidentified_data = [];
         foreach ($identified_data as $k=>$v) {
             $unidentified_data[explode("-", $k)[1]] = $v;
@@ -1185,14 +1107,10 @@ class Post_Data_Handler
          * 
          * @return array
          */
-        if (isset($this->post_data["f_u_btn_submit"])) {
-            $action = "update";
-        } elseif (isset($this->post_data["f_d_btn_submit"])) {
-            $action = "delete";
-        } elseif (isset($this->post_data["f_a_btn_submit"])) {
-            $action = "add";
-        }
-        return [$action, $this->get_colective_data(), $this->get_identified_data()];
+        return [
+            $this->post_data["mode"], 
+            $this->get_colective_data(), 
+            $this->get_identified_data()];
     }
 }
 
@@ -1222,7 +1140,7 @@ class Data_Preparer
         foreach ($data as $k=>$v) {
             $new_data["{$id}-{$k}"] = $v;
         }
-        $new_data["id"] = $id;
+        $new_data["ident"] = $id;
         $new_data["{$id}-amount"] = count($data);
         return $new_data;
     }
