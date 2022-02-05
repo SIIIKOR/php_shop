@@ -11,37 +11,45 @@
 <?php
 require_once("code_base.php");
 
+$post_handler = new Post_Data_Handler($_POST);
 $loader = new Db_Loader();
 $preparer = new Data_Preparer();
+// object used to run queries
+$runner = new Query_Runner($loader, $preparer);
+// object used to procces login data
+$logger = new Login_handler($runner);
 
-$login_data = $loader->check_login_status($_COOKIE, $preparer);
-$is_logged = $login_data[0];
-$is_admin = $login_data[1];
+// check login
+if (isset($_COOKIE["cookie_token"])) {
+    $logger->set_login($_COOKIE, TRUE);
+}
 
-if ($is_admin) {
-    $handler = new Data_Handler($_POST);
+if ($logger->is_admin()) {
+    $post_handler = new Post_Data_Handler($_POST);
 
-    $table_names = $loader->get_table_names();
-    $table_names_data = $preparer->tag_data("table_name", $table_names);
-    
-    if ($handler->get_post_arg("mode") == "vis") {
+    if ($post_handler->get_post_arg("mode") == "vis") {
         $link = "display_table.php";
-    } elseif($handler->get_post_arg("mode") == "add") {
+    } elseif($post_handler->get_post_arg("mode") == "add") {
         $link = "add_record.php";
     } else {
+        $crud_handler = new Crud_Handler($post_handler, $runner);
+        $crud_handler->handle_crud_action();
         $link = "add_record.php";
-        $table_name = $handler->get_post_arg("table_name");
-        $loader->handle_crud_action($handler, $preparer, $table_name);
     }
-    
-    $choose_table_form = new Multichoice_Btn_Form($table_names_data, $link, "multichoice_btn_form");
+    $table_names_data = $runner->get_table_names();
+
+    $choose_table_form = new Multichoice_Btn_Form($table_names_data, "table_name", $link, "multichoice_btn_form");
     $choose_table_form->create();
 } else {
     $login_mess = new Text_Field("insufficient permissions.", "login_mess");
     $login_mess->create();
 }
-$diff_table_btn = new Btn_Form("Go to the main page", "f_btn_submit", NULL, "crud_main_page.php", "r_btn");
-$diff_table_btn->create();
+$go_main_crud_page_btn = new Btn_Form();
+$go_main_crud_page_btn->set_text("Go to the main crud page");
+$go_main_crud_page_btn->set_name("f_btn_submit");
+$go_main_crud_page_btn->set_link("crud_main_page.php");
+$go_main_crud_page_btn->set_class_name("r_btn");
+$go_main_crud_page_btn->create();
 ?>
 
 </body>
