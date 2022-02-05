@@ -25,7 +25,6 @@ if (isset($_COOKIE["cookie_token"])) {
 
 if ($logger->is_admin()) {
     $post_handler = new Post_Data_Handler($_POST);
-    
     $records_per_page = 5;
     $page_num = $post_handler->get_post_arg("page_num");
     if (!$page_num) {
@@ -37,11 +36,13 @@ if ($logger->is_admin()) {
     $table_name = $post_handler->get_post_arg("table_name");
     $table_data = $runner->get_table_contents(
         ["*"], [$table_name], NULL, FALSE, $page_num, $records_per_page);
-    $table = new Table($table_data);
-    $table->set_primary_keys($runner->get_primary_key_names()[$table_name]);
-    $table->set_btn_data(["table_name"=>$table_name, "page_num"=>$page_num]);
-    $table->set_btn_link("update_table.php");
-    $table->create();
+    if (!empty($table_data)) {
+        $table = new Table($table_data);
+        $table->set_primary_keys($runner->get_primary_key_names()[$table_name]);
+        $table->set_btn_data(["table_name"=>$table_name, "page_num"=>$page_num]);
+        $table->set_btn_link("update_table.php");
+        $table->create();
+    }
     
     $total_row_count = $runner->get_table_contents(["count(*)"], [$table_name])[0]["count"];
     $pagination = new Pagination($page_num, $records_per_page, $total_row_count, "display_table.php");
