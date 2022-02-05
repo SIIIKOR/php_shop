@@ -10,45 +10,59 @@
 
 <?php
 require_once("code_base.php");
+
+$post_handler = new Post_Data_Handler($_POST);
 $loader = new Db_Loader();
 $preparer = new Data_Preparer();
+// object used to run queries
+$runner = new Query_Runner($loader, $preparer);
+// object used to procces login data
+$logger = new Login_handler($runner);
 
-$login_data = $loader->check_login_status($_COOKIE, $preparer);
-$is_logged = $login_data[0];
-$is_admin = $login_data[1];
+// check login
+if (isset($_COOKIE["cookie_token"])) {
+    $logger->set_login($_COOKIE, TRUE);
+}
 
-if ($is_admin) {
-    $handler = new Data_Handler($_POST);
+if ($logger->is_admin()) {
+    $post_handler = new Post_Data_Handler($_POST);
     
     $records_per_page = 5;
-    $page_num = $handler->get_post_arg("page_num");
+    $page_num = $post_handler->get_post_arg("page_num");
     if (!$page_num) {
         $page_num = 0;
     }
-    $table_name = $handler->get_post_arg("table_name");
-    $loader->handle_crud_action($handler, $preparer, $table_name);
-    
-    $data = $loader->get_table_contents($table_name, NULL, "*", FALSE, $page_num, $records_per_page);
-    $col_names = $loader->get_col_names($table_name);
-    $primary_keys = $loader->get_primary_key_names();
-    print("nr_strony<br>");
-    print_r($page_num);
-    $table = new Table($data, $col_names, $primary_keys, $table_name, $page_num, "update_table.php");
+    $crud_handler = new Crud_Handler($post_handler, $runner);
+    $crud_handler->handle_crud_action();
+
+    $table_name = $post_handler->get_post_arg("table_name");
+    $table_data = $runner->get_table_contents(
+        ["*"], [$table_name], NULL, FALSE, $page_num, $records_per_page);
+    $table = new Table($table_data);
+    $table->set_primary_keys($runner->get_primary_key_names()[$table_name]);
+    $table->set_btn_data(["table_name"=>$table_name, "page_num"=>$page_num]);
+    $table->set_btn_link("update_table.php");
     $table->create();
     
-    $total_row_count = $loader->get_table_row_amount($table_name);
-    $pagination = new Pagination($table_name, $page_num, $records_per_page, $total_row_count, "display_table.php");
+    $total_row_count = $runner->get_table_contents(["count(*)"], [$table_name])[0]["count"];
+    $pagination = new Pagination($page_num, $records_per_page, $total_row_count, "display_table.php");
+    $pagination->set_btn_data(["table_name"=>$table_name]);
     $pagination->create();
     
-    $diff_table_btn = new Btn_Form("Choose different table", "f_btn_submit", ["mode"=>"vis"], "choose_table.php", "r_btn");
+    $diff_table_btn = new Btn_Form(["mode"=>"vis"], "choose_table.php", "r_btn");
+    $diff_table_btn->set_text("Choose different table");
+    $diff_table_btn->set_name("f_btn_submit");
     $diff_table_btn->create();
 } else {
     $login_mess = new Text_Field("insufficient permissions.", "login_mess");
     $login_mess->create();
 }
-
-$diff_table_btn = new Btn_Form("Go to the main page", "f_btn_submit", NULL, "crud_main_page.php", "r_btn");
-$diff_table_btn->create();
+$go_main_crud_page_btn = new Btn_Form();
+$go_main_crud_page_btn->set_text("Go to the main crud page");
+$go_main_crud_page_btn->set_name("f_btn_submit");
+$go_main_crud_page_btn->set_link("crud_main_page.php");
+$go_main_crud_page_btn->set_class_name("r_btn");
+$go_main_crud_page_btn->create();
 ?>
 
 </body>

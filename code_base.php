@@ -1260,7 +1260,7 @@ class Data_Preparer
             if (is_array($value)) {
                 if ($value[1] == "cast") {
                     $value_str = $this::get_value_str($value[0]);
-                    $type_cast = $value[1];
+                    $type_cast = $value[2];
                     $value_str .= $type_cast;
                 } elseif ($value[1] == "symbolic") {
                     $value_str = $value[0];

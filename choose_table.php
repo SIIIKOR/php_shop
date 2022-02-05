@@ -38,7 +38,8 @@ if ($logger->is_admin()) {
     }
     $table_names_data = $runner->get_table_names();
 
-    $choose_table_form = new Multichoice_Btn_Form($table_names_data, "table_name", $link, "multichoice_btn_form");
+    $choose_table_form = new Multichoice_Btn_Form(
+        $table_names_data, "table_name", $link, "multichoice_btn_form");
     $choose_table_form->create();
 } else {
     $login_mess = new Text_Field("insufficient permissions.", "login_mess");
