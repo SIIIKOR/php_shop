@@ -58,10 +58,11 @@ if ($logger->is_logged()) {
     // create pagination so that users can display big amounts of data.
     $pagination = new Pagination($page_num, $records_per_page, $total_row_count, "cart.php");
     $pagination->create();
-
-    $place_order = new Btn_Form("Place your order", "orders.php", ["mode"=>"place_order"]);
-    $place_order->set_class_name("r_btn");
-    $place_order->create();
+    if (!empty($cart_contents_data)) {
+        $place_order = new Btn_Form("Place your order", "orders.php", ["mode"=>"place_order"]);
+        $place_order->set_class_name("r_btn");
+        $place_order->create();
+    }
 } else {
     $login_mess = new Text_Field("You should be logged in to display your cart.", "login_mess");
     $login_mess->create();

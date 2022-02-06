@@ -58,10 +58,10 @@ if ($logger->is_logged()) {
     if ($logger->is_admin()) { // admin mode
         $admin_btn = new Btn_Form("Go CRUD MODE", "crud_main_page.php");
         $admin_btn->set_class_name("admin_btn");
-        $ul_content = "<div class='user_panel'><ul>
+        $ul_content = "<ul>
                        <li>{$admin_btn->get_html()}</li>
                        <li>{$logout_btn->get_html()}</li>
-                       </ul></div>";
+                       </ul>";
     } else { // customer mode
         $cart_btn = new Btn_Form("cart", "cart.php");
         $cart_btn->set_class_name("r_btn");
@@ -69,11 +69,11 @@ if ($logger->is_logged()) {
         $orders_btn = new Btn_Form("orders", "orders.php");
         $orders_btn->set_class_name("r_btn");
 
-        $ul_content = "<div class='user_panel'><ul>
+        $ul_content = "<ul>
                        <li>{$cart_btn->get_html()}</li>
                        <li>{$orders_btn->get_html()}</li>
                        <li>{$logout_btn->get_html()}</li>
-                       </ul></div>";
+                       </ul>";
     }
 } else {
     // if user isn't logged in then he is in guest mode.
