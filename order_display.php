@@ -45,11 +45,7 @@ if ($logger->is_logged()) {
     $pagination->set_btn_data(["id"=>$order_id]);
     $pagination->create();
 
-    $back_btn = new Btn_Form();
-    $back_btn->set_text("Go back");
-    $back_btn->set_name("f_btn_submit");
-    $back_btn->set_hidden_data(["page_num"=>$page_num]);
-    $back_btn->set_link("orders.php");
+    $back_btn = new Btn_Form("Go back", "orders.php", ["page_num"=>$page_num]);
     $back_btn->set_class_name("r_btn");
     $back_btn->create();
 } else {
@@ -57,10 +53,7 @@ if ($logger->is_logged()) {
     $login_mess->create();
 }
 
-$go_main_page_btn = new Btn_Form();
-$go_main_page_btn->set_text("Go to the main page");
-$go_main_page_btn->set_name("f_btn_submit");
-$go_main_page_btn->set_link("index.php");
+$go_main_page_btn = new Btn_Form("Go to the main crud page", "crud_main_page.php", );
 $go_main_page_btn->set_class_name("r_btn");
 $go_main_page_btn->create();
 ?>

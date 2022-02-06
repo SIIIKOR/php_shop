@@ -59,19 +59,15 @@ if ($logger->is_logged()) {
     $pagination = new Pagination($page_num, $records_per_page, $total_row_count, "cart.php");
     $pagination->create();
 
-    $place_order = new Btn_Form(["mode"=>"place_order"], "orders.php", "r_btn");
-    $place_order->set_text("Place your order");
-    $place_order->set_name("f_btn_submit");
+    $place_order = new Btn_Form("Place your order", "orders.php", ["mode"=>"place_order"]);
+    $place_order->set_class_name("r_btn");
     $place_order->create();
 } else {
     $login_mess = new Text_Field("You should be logged in to display your cart.", "login_mess");
     $login_mess->create();
 }
 
-$go_main_page_btn = new Btn_Form();
-$go_main_page_btn->set_text("Go to the main page");
-$go_main_page_btn->set_name("f_btn_submit");
-$go_main_page_btn->set_link("index.php");
+$go_main_page_btn = new Btn_Form("Go to the main crud page", "crud_main_page.php", );
 $go_main_page_btn->set_class_name("r_btn");
 $go_main_page_btn->create();
 ?>

@@ -52,35 +52,22 @@ if ($logger->is_logged()) {
     $login_mess = new Text_Field("Logged in.", "login_mess");
     $login_mess->create();
 
-    $logout_btn = new Btn_Form();
-    $logout_btn->set_text("logout");
-    $logout_btn->set_name("f_btn_submit");
+    $logout_btn = new Btn_Form("logout", "index.php", ["mode"=>"logout"]);
     $logout_btn->set_class_name("r_btn");
-    $logout_btn->set_hidden_data(["mode"=>"logout"]);
-    $logout_btn->set_link("index.php");
 
     if ($logger->is_admin()) { // admin mode
-        $admin_btn = new Btn_Form();
-        $admin_btn->set_text("Go CRUD MODE");
+        $admin_btn = new Btn_Form("Go CRUD MODE", "crud_main_page.php");
         $admin_btn->set_class_name("admin_btn");
-        $admin_btn->set_name("f_btn_submit");
-        $admin_btn->set_link("crud_main_page.php");
         $ul_content = "<ul>
                        <li>{$admin_btn->get_html()}</li>
                        <li>{$logout_btn->get_html()}</li>
                        </ul>";
     } else { // customer mode
-        $cart_btn = new Btn_Form();
-        $cart_btn->set_text("cart");
-        $cart_btn->set_name("f_btn_submit");
+        $cart_btn = new Btn_Form("cart", "cart.php");
         $cart_btn->set_class_name("r_btn");
-        $cart_btn->set_link("cart.php");
 
-        $orders_btn = new Btn_Form();
-        $orders_btn->set_text("orders");
-        $orders_btn->set_name("f_btn_submit");
+        $orders_btn = new Btn_Form("orders", "orders.php");
         $orders_btn->set_class_name("r_btn");
-        $orders_btn->set_link("orders.php");
 
         $ul_content = "<ul>
                        <li>{$cart_btn->get_html()}</li>
@@ -93,19 +80,11 @@ if ($logger->is_logged()) {
     $login_mess = new Text_Field("Guest mode.", "login_mess");
     $login_mess->create();
 
-    $login_btn = new Btn_Form();
-    $login_btn->set_text("login");
-    $login_btn->set_name("f_btn_submit");
+    $login_btn = new Btn_Form("login", "login_page.php", ["mode"=>"login"]);
     $login_btn->set_class_name("r_btn");
-    $login_btn->set_hidden_data(["mode"=>"login"]);
-    $login_btn->set_link("login_page.php");
 
-    $register_btn = new Btn_Form();
-    $register_btn->set_text("register");
-    $register_btn->set_name("f_btn_submit");
+    $register_btn = new Btn_Form("register", "login_page.php", ["mode"=>"register"]);
     $login_btn->set_class_name("r_btn");
-    $register_btn->set_hidden_data(["mode"=>"register"]);
-    $register_btn->set_link("login_page.php");
 
     $ul_content = "<ul>
                    <li>{$login_btn->get_html()}</li>

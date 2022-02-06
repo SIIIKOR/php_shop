@@ -1462,6 +1462,16 @@ class Btn_Form extends Form
     private $btn_text;
     private $btn_name;
 
+    function __construct($btn_text="", $link=NULL, $hidden_data=NULL, $btn_name="f_btn_submit", $class_name=NULL, $id_name=NULL)
+    {
+        $this->btn_text = $btn_text;
+        $this->link = $link;
+        $this->hidden_data = $hidden_data;
+        $this->btn_name = $btn_name;
+        $this->class_name = $class_name;
+        $this->id_name = $id_name;
+    }
+
     function set_text($btn_text) {
         $this->btn_text = $btn_text;
     }
@@ -1477,12 +1487,6 @@ class Btn_Form extends Form
          * 
          * @return string
          */
-        if (!isset($this->btn_text)) {
-            $this->btn_text = "";
-        }
-        if (!isset($this->btn_name)) {
-            $this->btn_name = "f_btn_submit";
-        }
         $contents = "";
         if (isset($this->hidden_data)) {
             $contents .= $this->add_hidden_data();
@@ -1578,8 +1582,7 @@ class Text_Form extends Multichoice_Form
         if (!isset($this->btn_name)) {
             $this->btn_name = "f_t_btn_submit";
         }
-        $btn = new Btn_Form();
-        $btn->set_text($this->btn_text);
+        $btn = new Btn_Form($this->btn_text);
         $btn->set_name($this->btn_name);
         $btn->set_class_name($this->btn_name);
         if (isset($this->hidden_data)) {
@@ -1615,8 +1618,7 @@ class Radio_Form extends Multichoice_Form
             $contents .= $this->get_label_row($v, $v);
             $contents .= "<br>";
         }
-        $btn = new Btn_Form();
-        $btn->set_text($this->btn_text);
+        $btn = new Btn_Form($this->btn_text);
         $btn->set_name($this->btn_name);
         if (isset($this->hidden_data)) {
             $btn->set_hidden_data($this->hidden_data);
@@ -1657,10 +1659,7 @@ class Multichoice_Btn_Form extends Form
          */
         $contents = "";
         foreach ($this->btns_data as $value) {
-            $btn = new Btn_Form([$this->context=>$value], $this->link);
-            $btn->set_text($value);
-            $btn->set_name("f_m_btn_submit");
-
+            $btn = new Btn_Form($value, $this->link, [$this->context=>$value], "f_m_btn_submit");
             $contents .= $btn->get_html();
         }
         return $contents;
@@ -1800,10 +1799,7 @@ class Table extends Html_Object
                 foreach($this->btn_data as $k=>$v) {  // this should contain table_name and page_num
                     $post_data[$k] = $v;
                 }
-                $btn = new Btn_Form($post_data, $this->btn_link);
-                $btn->set_text("X");
-                $btn->set_name("f_btn_action");
-
+                $btn = new Btn_Form("X", $this->btn_link, $post_data, "f_btn_action");
                 $cells .= "<{$type} class=\"actions\">{$btn->get_html()}</{$type}>";
         }
         return $cells;
@@ -1916,10 +1912,7 @@ class Pagination extends Html_Object
                     $post_data[$k] = $v;
                 }
             }
-            $pagi_btn = new Btn_Form($post_data, $this->link);
-            $pagi_btn->set_text("left");
-            $pagi_btn->set_name("form_pagi_left_btn");
-
+            $pagi_btn = new Btn_Form("left", $this->link, $post_data, "form_pagi_left_btn");
             $pagination .= $pagi_btn->get_html();
             // if there should exists right button.
           } if (($this->page_num+1)*$this->records_per_page<$this->total_row_count) {
@@ -1931,10 +1924,7 @@ class Pagination extends Html_Object
                     $post_data[$k] = $v;
                 }
             }
-            $pagi_btn = new Btn_Form($post_data, $this->link);
-            $pagi_btn->set_text("right");
-            $pagi_btn->set_name("form_pagi_right_btn");
-
+            $pagi_btn = new Btn_Form("rigth", $this->link, $post_data, "form_pagi_right_btn");
             $pagination .= $pagi_btn->get_html();
           }
         return $pagination;

@@ -44,11 +44,9 @@ if ($logger->is_logged()) {
         // if atleast one product is avaliable then we can pick by index 0
         $product_data = $instances_of_product[0];
         $product_id = $product_data["id"];
-        $buy_btn = new Btn_Form(
-            ["mode"=>"add_to_cart", "id" => $product_id],
-             "cart.php", "r_btn");
-        $buy_btn->set_text("add to cart");
-        $buy_btn->set_name("f_btn_submit");
+        $buy_btn = new Btn_Form("add to cart", "cart.php",
+            ["mode"=>"add_to_cart", "id" => $product_id]);
+        $buy_btn->set_class_name("r_btn");
         $buy_btn->create();
     }
 }
@@ -56,10 +54,7 @@ if ($logger->is_logged()) {
 $description = new Text_Field($product_info["description"], "description");
 $description->create();
 
-$go_main_page_btn = new Btn_Form();
-$go_main_page_btn->set_text("Go to the main page");
-$go_main_page_btn->set_name("f_btn_submit");
-$go_main_page_btn->set_link("index.php");
+$go_main_page_btn = new Btn_Form("Go to the main crud page", "crud_main_page.php", );
 $go_main_page_btn->set_class_name("r_btn");
 $go_main_page_btn->create();
 ?>

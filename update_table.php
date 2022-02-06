@@ -39,24 +39,19 @@ if ($logger->is_admin()) {
     $text_form->set_btn_name("f_u_btn_submit");
     $text_form->create();
 
-    $diff_table_btn = new Btn_Form(array_merge($pk_values, $r_data, ["mode"=>"delete"]), "display_table.php", "r_btn");
-    $diff_table_btn->set_text("Delete");
-    $diff_table_btn->set_name("f_d_btn_submit");
+    $diff_table_btn = new Btn_Form("Delete", "display_table.php", array_merge($pk_values, $r_data, ["mode"=>"delete"]), "f_d_btn_submit");
+    $diff_table_btn->set_class_name("r_btn");
     $diff_table_btn->create();
     
-    $diff_table_btn = new Btn_Form($r_data, "display_table.php", "r_btn");
-    $diff_table_btn->set_text("Go back");
-    $diff_table_btn->set_name("f_btn_submit");
+    $diff_table_btn = new Btn_Form("Go back", "display_table.php", $r_data);
+    $diff_table_btn->set_class_name("r_btn");
     $diff_table_btn->create();
 } else {
     $login_mess = new Text_Field("insufficient permissions.", "login_mess");
     $login_mess->create();
 }
 
-$go_main_crud_page_btn = new Btn_Form();
-$go_main_crud_page_btn->set_text("Go to the main crud page");
-$go_main_crud_page_btn->set_name("f_btn_submit");
-$go_main_crud_page_btn->set_link("crud_main_page.php");
+$go_main_crud_page_btn = new Btn_Form("Go to the main crud page", "crud_main_page.php", );
 $go_main_crud_page_btn->set_class_name("r_btn");
 $go_main_crud_page_btn->create();
 ?>

@@ -61,11 +61,7 @@ if ($logger->is_logged()) {
     $login_mess = new Text_Field("You should be logged in to display your cart.", "login_mess");
     $login_mess->create();
 }
-
-$go_main_page_btn = new Btn_Form();
-$go_main_page_btn->set_text("Go to the main page");
-$go_main_page_btn->set_name("f_btn_submit");
-$go_main_page_btn->set_link("index.php");
+$go_main_page_btn = new Btn_Form("Go to the main crud page", "crud_main_page.php", );
 $go_main_page_btn->set_class_name("r_btn");
 $go_main_page_btn->create();
 ?>
