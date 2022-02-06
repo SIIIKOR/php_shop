@@ -3,7 +3,7 @@
 <body>
 <head>
     <title>CRUD main page</title>
-    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <h1>CRUD main page</h1>
@@ -27,11 +27,11 @@ if (isset($_COOKIE["cookie_token"])) {
 if ($logger->is_admin()) {
     // btn used to move to page where admin can choose table
     $choose_table_btn = new Btn_Form("Choose table", "choose_table.php", ["mode"=>"vis"]);
-    $choose_table_btn->set_class_name("r_btn");
+    $choose_table_btn->set_class_name("r_c_btn");
     $choose_table_btn->create();
     // btn used to move to page where admin can add records
     $add_record_btn = new Btn_Form("Add record", "choose_table.php", ["mode"=>"add"]);
-    $add_record_btn->set_class_name("r_btn");
+    $add_record_btn->set_class_name("r_c_btn");
     $add_record_btn->create();
 } elseif ($logger->is_logged()) {
     $login_mess = new Text_Field("insufficient permissions.", "login_mess");
@@ -41,7 +41,7 @@ if ($logger->is_admin()) {
     $login_mess->create();
 }
 $go_main_page_btn = new Btn_Form("Go to the main page", "index.php");
-$go_main_page_btn->set_class_name("r_btn");
+$go_main_page_btn->set_class_name("r_c_btn");
 $go_main_page_btn->create();
 ?>
 

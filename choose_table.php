@@ -3,10 +3,12 @@
 <body>
 <head>
     <title>Choose table</title>
-    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <h1>Choose table</h1>
+
+<div id="main">
 
 <?php
 require_once("code_base.php");
@@ -45,9 +47,10 @@ if ($logger->is_admin()) {
     $login_mess->create();
 }
 $go_main_page_btn = new Btn_Form("Go to the main crud page", "crud_main_page.php", );
-$go_main_page_btn->set_class_name("r_btn");
+$go_main_page_btn->set_class_name("r_c_btn");
 $go_main_page_btn->create();
 ?>
 
+</div>
 </body>
 </html>

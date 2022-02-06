@@ -3,10 +3,12 @@
 <body>
 <head>
     <title>Modifying records</title>
-    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <h1>Modify</h1>
+
+<div id="main">
 
 <?php
 require_once("code_base.php");
@@ -40,11 +42,11 @@ if ($logger->is_admin()) {
     $text_form->create();
 
     $diff_table_btn = new Btn_Form("Delete", "display_table.php", array_merge($pk_values, $r_data, ["mode"=>"delete"]), "f_d_btn_submit");
-    $diff_table_btn->set_class_name("r_btn");
+    $diff_table_btn->set_class_name("r_c_btn");
     $diff_table_btn->create();
     
     $diff_table_btn = new Btn_Form("Go back", "display_table.php", $r_data);
-    $diff_table_btn->set_class_name("r_btn");
+    $diff_table_btn->set_class_name("r_c_btn");
     $diff_table_btn->create();
 } else {
     $login_mess = new Text_Field("insufficient permissions.", "login_mess");
@@ -52,9 +54,10 @@ if ($logger->is_admin()) {
 }
 
 $go_main_crud_page_btn = new Btn_Form("Go to the main crud page", "crud_main_page.php");
-$go_main_crud_page_btn->set_class_name("r_btn");
+$go_main_crud_page_btn->set_class_name("r_c_btn");
 $go_main_crud_page_btn->create();
 ?>
 
+</div>
 </body>
 </html>

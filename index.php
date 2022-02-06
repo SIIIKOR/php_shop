@@ -3,10 +3,12 @@
 <body>
 <head>
     <title>PHP shop main page</title>
-    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <h1>PHP shop</h1>
+
+<div id="main">
 
 <?php
 require_once("code_base.php");
@@ -98,7 +100,7 @@ $category_names_query_output = $runner->get_table_contents(["category_name"], ["
 $category_names = $preparer->get_query_output_col_to_list($category_names_query_output);
 array_push($category_names, "reset"); // adds additional reset btn
 // creates btns used to select desired category name
-$category_btn = new Multichoice_Btn_Form($category_names, "category_name", "index.php", "cat_multi_btns");
+$category_btn = new Multichoice_Btn_Form($category_names, "category_name", "index.php", "multichoice_btn_form");
 $category_btn->create();
 // after using category_btn
 $category_name = $post_handler->get_post_arg("category_name");
@@ -127,7 +129,7 @@ $shop_contents = $runner->get_table_contents(
 // create table with shop contents
 if (!empty($shop_contents)) {
     $table = new Table($shop_contents, array_slice($col_names, 1));
-    $table->set_class_name("products_display");
+    $table->set_class_name("table");
     $table->set_primary_keys(["id"]);
     $table->set_btn_link("product_page.php");
     $table->create();
@@ -139,5 +141,6 @@ $pagination->create();
 
 ?>
 
+</div>
 </body>
 </html>

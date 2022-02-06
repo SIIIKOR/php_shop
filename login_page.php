@@ -3,8 +3,11 @@
 <body>
 <head>
     <title>Login|Register page</title>
-    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <link rel="stylesheet" href="styles.css">
 </head>
+
+<div id="main">
+
 
 <?php
 require_once("code_base.php");
@@ -43,9 +46,10 @@ if ($post_handler->get_post_arg("mode") == "login" or $is_successful_reg) {
     $text_form->create();
 }
 $go_main_page_btn = new Btn_Form("Go to the main crud page", "index.php");
-$go_main_page_btn->set_class_name("r_btn");
+$go_main_page_btn->set_class_name("r_c_btn");
 $go_main_page_btn->create();
 ?>
 
+</div>
 </body>
 </html>

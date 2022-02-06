@@ -3,10 +3,12 @@
 <body>
 <head>
     <title>Orders page</title>
-    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <h1>Order</h1>
+
+<div id="main">
 
 <?php
 require_once("code_base.php");
@@ -55,9 +57,10 @@ if ($logger->is_logged()) {
 }
 
 $go_main_page_btn = new Btn_Form("Go to the main page", "index.php");
-$go_main_page_btn->set_class_name("r_btn");
+$go_main_page_btn->set_class_name("r_c_btn");
 $go_main_page_btn->create();
 ?>
 
+</div>
 </body>
 </html>

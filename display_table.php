@@ -3,10 +3,12 @@
 <body>
 <head>
     <title>Dsiplay table</title>
-    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <h1>Display</h1>
+
+<div id="main">
 
 <?php
 require_once("code_base.php");
@@ -38,7 +40,7 @@ if ($logger->is_admin()) {
         ["*"], [$table_name], NULL, FALSE, $page_num, $records_per_page);
     if (!empty($table_data)) {
         $table = new Table($table_data);
-        $table->set_class_name("table_display");
+        $table->set_class_name("table");
         $table->set_primary_keys($runner->get_primary_key_names()[$table_name]);
         $table->set_btn_data(["table_name"=>$table_name, "page_num"=>$page_num]);
         $table->set_btn_link("update_table.php");
@@ -51,16 +53,17 @@ if ($logger->is_admin()) {
     $pagination->create();
     
     $diff_table_btn = new Btn_Form("Choose different table", "choose_table.php", ["mode"=>"vis"]);
-    $diff_table_btn->set_class_name("r_btn");
+    $diff_table_btn->set_class_name("r_c_btn");
     $diff_table_btn->create();
 } else {
     $login_mess = new Text_Field("insufficient permissions.", "login_mess");
     $login_mess->create();
 }
 $go_main_crud_page_btn = new Btn_Form("Go to the main crud page", "crud_main_page.php");
-$go_main_crud_page_btn->set_class_name("r_btn");
+$go_main_crud_page_btn->set_class_name("r_c_btn");
 $go_main_crud_page_btn->create();
 ?>
 
+</div>
 </body>
 </html>

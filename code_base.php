@@ -1949,6 +1949,15 @@ class Text_Field extends Html_Object
     {
         return "<p>{$this->text}</p>";
     }
+
+    function get_html()
+    {
+        $html_code = $this->get_contents();
+        if (!is_null($this->class_name) or !is_null($this->id_name)) {
+            $html_code = $this->submerge_in_div($html_code, $this->class_name, $this->id_name);
+        }
+        return $html_code;
+    }
 }
 
 ?>

@@ -3,10 +3,12 @@
 <body>
 <head>
     <title>Cart page</title>
-    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <h1>Your cart</h1>
+
+<div id="main">
 
 <?php
 require_once("code_base.php");
@@ -50,6 +52,7 @@ if ($logger->is_logged()) {
     $total_row_count = $shop->get_cart_contents(TRUE);
     if (is_array($cart_contents_data) and $total_row_count>0) {
         $cart_contents = new Table($cart_contents_data);
+        $cart_contents->set_class_name("table");
         $cart_contents->set_primary_keys(["id"]);
         $cart_contents->set_btn_data(["mode"=>"out_cart_id"]);
         $cart_contents->set_btn_link("cart.php");
@@ -60,7 +63,7 @@ if ($logger->is_logged()) {
     $pagination->create();
     if (!empty($cart_contents_data)) {
         $place_order = new Btn_Form("Place your order", "orders.php", ["mode"=>"place_order"]);
-        $place_order->set_class_name("r_btn");
+        $place_order->set_class_name("r_c_btn");
         $place_order->create();
     }
 } else {
@@ -69,9 +72,10 @@ if ($logger->is_logged()) {
 }
 
 $go_main_page_btn = new Btn_Form("Go to the main page", "index.php");
-$go_main_page_btn->set_class_name("r_btn");
+$go_main_page_btn->set_class_name("r_c_btn");
 $go_main_page_btn->create();
 ?>
 
+</div>
 </body>
 </html>

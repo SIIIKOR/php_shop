@@ -3,10 +3,12 @@
 <body>
 <head>
     <title>Product page</title>
-    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <h1>Product info</h1>
+
+<div id="main">
 
 <?php
 require_once("code_base.php");
@@ -37,7 +39,6 @@ $instances_of_product = $runner->get_table_contents(
 $products_left = count($instances_of_product);
 
 $price = new Text_Field("{$products_left} left", "avaliable");
-$price->create();
 
 if ($logger->is_logged()) {
     if ($products_left) {
@@ -47,17 +48,22 @@ if ($logger->is_logged()) {
         $buy_btn = new Btn_Form("add to cart", "cart.php",
             ["mode"=>"add_to_cart", "id" => $product_id]);
         $buy_btn->set_class_name("r_btn");
-        $buy_btn->create();
     }
 }
+if (isset($buy_btn)) {
+    $btn_html = $buy_btn->get_html();
+}
+
+print("<div class=\"buy_panel\">{$price->get_html()}{$btn_html}</div>");
 
 $description = new Text_Field($product_info["description"], "description");
 $description->create();
 
 $go_main_page_btn = new Btn_Form("Go to the main page", "index.php", );
-$go_main_page_btn->set_class_name("r_btn");
+$go_main_page_btn->set_class_name("r_c_btn");
 $go_main_page_btn->create();
 ?>
 
+</div>
 </body>
 </html>

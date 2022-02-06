@@ -3,7 +3,7 @@
 <body>
 <head>
     <title>Choose table</title>
-    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <h1>Choose table</h1>

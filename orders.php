@@ -3,10 +3,12 @@
 <body>
 <head>
     <title>Orders page</title>
-    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <h1>Orders</h1>
+
+<div id="main">
 
 <?php
 require_once("code_base.php");
@@ -46,7 +48,7 @@ if ($logger->is_logged()) {
         $page_num, $records_per_page);
     if (is_array($orders_data) and !empty($orders_data)) {
         $orders_contents = new Table($orders_data);
-        $orders_contents->set_class_name("orders_display");
+        $orders_contents->set_class_name("table");
         $orders_contents->set_primary_keys(["id"]);
         $orders_contents->set_btn_data(["page_num"=>$page_num]);
         $orders_contents->set_btn_link("order_display.php");
@@ -63,9 +65,10 @@ if ($logger->is_logged()) {
     $login_mess->create();
 }
 $go_main_page_btn = new Btn_Form("Go to the main page", "index.php", );
-$go_main_page_btn->set_class_name("r_btn");
+$go_main_page_btn->set_class_name("r_c_btn");
 $go_main_page_btn->create();
 ?>
 
+</div>
 </body>
 </html>
