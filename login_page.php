@@ -42,7 +42,7 @@ if ($post_handler->get_post_arg("mode") == "login" or $is_successful_reg) {
     $text_form->set_hidden_data(["mode"=>"login_after_register"]);
     $text_form->create();
 }
-$go_main_page_btn = new Btn_Form("Go to the main crud page", "crud_main_page.php", );
+$go_main_page_btn = new Btn_Form("Go to the main crud page", "index.php");
 $go_main_page_btn->set_class_name("r_btn");
 $go_main_page_btn->create();
 ?>

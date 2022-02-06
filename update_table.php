@@ -51,7 +51,7 @@ if ($logger->is_admin()) {
     $login_mess->create();
 }
 
-$go_main_crud_page_btn = new Btn_Form("Go to the main crud page", "crud_main_page.php", );
+$go_main_crud_page_btn = new Btn_Form("Go to the main crud page", "crud_main_page.php");
 $go_main_crud_page_btn->set_class_name("r_btn");
 $go_main_crud_page_btn->create();
 ?>
