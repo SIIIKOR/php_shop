@@ -37,6 +37,7 @@ if ($logger->is_logged()) {
     $order_contents = $shop->get_order_product_info($order_id, FALSE, $page_num, $records_per_page);
     if (!empty($order_contents)) {
         $table = new Table($order_contents);
+        $table->set_class_name("order_display");
         $table->create();
     }
 

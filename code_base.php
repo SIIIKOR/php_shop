@@ -987,7 +987,7 @@ class Crud_Handler
         $action = $action_arr[0];
         $user_input_arr = $action_arr[1];  // data provided by user, usually in text form.
         $hidden_data_arr = $action_arr[2];  // primary keys used in creating where statement.
-        if ($this->prep->check_user_input($user_input_arr, "/^[\w\s.@]+$/")) {
+        if ($this->prep->check_user_input($user_input_arr, "/^[\w\s.@-]+$/")) {
             $table_name = $this->post_handl->get_post_arg("table_name");
             if ($action == "update") {
                 $this->run->update_table_row($user_input_arr, [$table_name], $hidden_data_arr);

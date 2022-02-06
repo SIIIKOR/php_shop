@@ -38,6 +38,7 @@ if ($logger->is_admin()) {
         ["*"], [$table_name], NULL, FALSE, $page_num, $records_per_page);
     if (!empty($table_data)) {
         $table = new Table($table_data);
+        $table->set_class_name("table_display");
         $table->set_primary_keys($runner->get_primary_key_names()[$table_name]);
         $table->set_btn_data(["table_name"=>$table_name, "page_num"=>$page_num]);
         $table->set_btn_link("update_table.php");

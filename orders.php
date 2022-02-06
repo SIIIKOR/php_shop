@@ -44,8 +44,9 @@ if ($logger->is_logged()) {
         ["id", "order_placed_date", "order_finished_date", "is_finished"],
         ["orders"], ["user_id"=>$logger->get_user_id()],
         $page_num, $records_per_page);
-    if (is_array($orders_data)) {
+    if (is_array($orders_data) and !empty($orders_data)) {
         $orders_contents = new Table($orders_data);
+        $orders_contents->set_class_name("orders_display");
         $orders_contents->set_primary_keys(["id"]);
         $orders_contents->set_btn_data(["page_num"=>$page_num]);
         $orders_contents->set_btn_link("order_display.php");
