@@ -1924,7 +1924,7 @@ class Pagination extends Html_Object
                     $post_data[$k] = $v;
                 }
             }
-            $pagi_btn = new Btn_Form("rigth", $this->link, $post_data, "form_pagi_right_btn");
+            $pagi_btn = new Btn_Form("right", $this->link, $post_data, "form_pagi_right_btn");
             $pagination .= $pagi_btn->get_html();
           }
         return $pagination;
