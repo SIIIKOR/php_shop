@@ -105,16 +105,20 @@ $category_btn->create();
 // after using category_btn
 $category_name = $post_handler->get_post_arg("category_name");
 
-if (!isset($_POST["category_name"])) {
+if (!isset($_POST["chosen_category_name"])) {
     $condition_arr = NULL;
+    $post_condition = NULL;
 } else {
-    $condition_arr = $post_handler->get_post_arg("category_name");
+    $post_condition = $post_handler->get_post_arg("chosen_category_name");
+    $condition_arr = ["category_name"=>$post_condition["chosen_category_name"]];
 }
 if ($category_name) {  // if cat_multi_btns was pressed
     if ($category_name == "reset") {  // if reset, reset condition_arr
         $condition_arr = NULL;
+        $post_condition = NULL;
     } else {  // create condition_arr with chosen category name
         $condition_arr = ["category_name"=>$category_name];
+        $post_condition = ["chosen_category_name"=>$category_name];
     }
 }
 // how many records will be displayed per page
@@ -141,7 +145,9 @@ if (!empty($shop_contents)) {
 // create pagination
 $total_row_count = $runner->get_table_row_amount("product_groups", $condition_arr);
 $pagination = new Pagination($page_num, $records_per_page, $total_row_count, "index.php");
-$pagination->set_btn_data($condition_arr);
+if (!is_null($post_condition)) {
+    $pagination->set_btn_data($post_condition);
+}
 $pagination->create();
 
 ?>

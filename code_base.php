@@ -1056,7 +1056,7 @@ class Post_Data_Handler
         if (isset($post_data["mode"])) {
             $n += 1;
         }
-        if (isset($post_data["category_name"])) {
+        if (isset($post_data["chosen_category_name"])) {
             $n += 1;
         }
         $this->predef_par_amount += $n;
