@@ -114,7 +114,7 @@ if ($category_name) {  // if cat_multi_btns was pressed
     }
 }
 // how many records will be displayed per page
-$records_per_page = 5;
+$records_per_page = 20;
 $page_num = $post_handler->get_post_arg("page_num");
 if (!$page_num) {
     // if pagination wasn't used yet.

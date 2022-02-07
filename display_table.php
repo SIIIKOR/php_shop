@@ -27,7 +27,7 @@ if (isset($_COOKIE["cookie_token"])) {
 
 if ($logger->is_admin()) {
     $post_handler = new Post_Data_Handler($_POST);
-    $records_per_page = 5;
+    $records_per_page = 20;
     $page_num = $post_handler->get_post_arg("page_num");
     if (!$page_num) {
         $page_num = 0;

@@ -27,7 +27,7 @@ if (isset($_COOKIE["cookie_token"])) {
 if ($logger->is_logged()) {
     // get user id
     $handler = new Post_Data_Handler($_POST);
-    $records_per_page = 5;  // how many records will be displayed per page
+    $records_per_page = 20;  // how many records will be displayed per page
     $page_num = $handler->get_post_arg("page_num");
     if (!$page_num) {
         // if pagination wasn't used yet.
