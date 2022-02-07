@@ -8,6 +8,8 @@
 
 <h1>Choose table</h1>
 
+<div id="main">
+
 <?php
 require_once("code_base.php");
 
@@ -33,16 +35,17 @@ if ($logger->is_admin()) {
     $text_form->create();
     
     $diff_table_btn = new Btn_Form("Choose different table", "choose_table.php", ["mode"=>"add"]);
-    $diff_table_btn->set_class_name("r_btn");
+    $diff_table_btn->set_class_name("r_c_btn");
     $diff_table_btn->create();
 } else {
     $login_mess = new Text_Field("insufficient permissions.", "login_mess");
     $login_mess->create();
 }
 $go_main_crud_page_btn = new Btn_Form("Go to the main crud page", "crud_main_page.php");
-$go_main_crud_page_btn->set_class_name("r_btn");
+$go_main_crud_page_btn->set_class_name("r_c_btn");
 $go_main_crud_page_btn->create();
 ?>
 
+</div>
 </body>
 </html>
