@@ -441,7 +441,7 @@ class Query_Runner
         return $table_names;
     }
 
-    function get_table_row_amount($table_name)
+    function get_table_row_amount($table_name, $condition_arr=NULL)
     {
         /**
          * Method used to return amount of rows in a given table
@@ -453,6 +453,9 @@ class Query_Runner
 
         $query->set_select_statement(["count(*)"]);
         $query->set_from_statement([$table_name]);
+        if (!is_null($condition_arr)) {
+            $query->set_where_statement($condition_arr);
+        }
 
         $data = $this->loader->run_query($query->get_query());
         return $data[0]["count"];
@@ -1017,15 +1020,20 @@ class Post_Data_Handler
         $this->post_data = $post_data;
         $this->predef_par_amount = 1;
         $this->id = $this->get_identifier();
+        $n = 0;
         if (isset($post_data["page_num"])) {
-            $this->predef_par_amount += 1;
+            $n += 1;
         }
         if (isset($post_data["table_name"])) {
-            $this->predef_par_amount += 1;
+            $n += 1;
         }
         if (isset($post_data["mode"])) {
-            $this->predef_par_amount += 1;
+            $n += 1;
         }
+        if (isset($post_data["category_name"])) {
+            $n += 1;
+        }
+        $this->predef_par_amount += $n;
     }
 
     function get_post_arg($arg_name)

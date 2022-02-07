@@ -105,7 +105,11 @@ $category_btn->create();
 // after using category_btn
 $category_name = $post_handler->get_post_arg("category_name");
 
-$condition_arr = NULL;
+if (!isset($_POST["category_name"])) {
+    $condition_arr = NULL;
+} else {
+    $condition_arr = $post_handler->get_post_arg("category_name");
+}
 if ($category_name) {  // if cat_multi_btns was pressed
     if ($category_name == "reset") {  // if reset, reset condition_arr
         $condition_arr = NULL;
@@ -135,8 +139,9 @@ if (!empty($shop_contents)) {
     $table->create();
 }
 // create pagination
-$total_row_count = $runner->get_table_row_amount("product_groups");
+$total_row_count = $runner->get_table_row_amount("product_groups", $condition_arr);
 $pagination = new Pagination($page_num, $records_per_page, $total_row_count, "index.php");
+$pagination->set_btn_data($condition_arr);
 $pagination->create();
 
 ?>
