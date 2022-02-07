@@ -961,6 +961,32 @@ class Shop_Handler
                         {$query->get_query()}";
         return $this->run->run_query($final_query);
     }
+
+    function get_amount_due($order_id=NULL)
+    {
+        $sub_query = new Psql_Query_Select();
+        $sub_query->set_preparer($this->prep);
+        $sub_query->set_select_statement(["id"]);
+        if (is_null($order_id)) {
+            $sub_query->set_from_statement(["cart"]);
+            $sub_query->set_where_statement(["user_id"=>$this->user_id]);
+        } else {
+            $sub_query->set_from_statement(["products"]);
+            $sub_query->set_where_statement(["order_id"=>$order_id]);
+        }
+
+        $query = new Psql_Query_Select();
+        $query->set_preparer($this->prep);
+
+        $query->set_select_statement(["sum(price)"]);
+        $query->set_from_statement(["prod_ids", "products", "product_groups"]);
+        $query->set_where_statement(
+            ["prod_ids.id"=>["products.id", "symbolic"],
+             "products.group_id"=>["product_groups.id", "symbolic"]]);
+        $final_query = "WITH prod_ids as ({$sub_query->get_query(FALSE)})
+        {$query->get_query()}";
+        return $this->run->run_query($final_query);
+    }
 }
 
 class Crud_Handler

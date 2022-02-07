@@ -38,8 +38,11 @@ if ($logger->is_logged()) {
 
     $order_contents = $shop->get_order_product_info($order_id, FALSE, $page_num, $records_per_page);
     if (!empty($order_contents)) {
+        $amount_due = new Text_Field("Amount due {$shop->get_amount_due($order_id)[0]["sum"]} zł", "amount due");
+        $amount_due->create();
+
         $table = new Table($order_contents);
-        $table->set_class_name("order_display");
+        $table->set_class_name("table");
         $table->create();
     }
 
@@ -49,7 +52,7 @@ if ($logger->is_logged()) {
     $pagination->create();
 
     $back_btn = new Btn_Form("Go back", "orders.php", ["page_num"=>$page_num]);
-    $back_btn->set_class_name("r_btn");
+    $back_btn->set_class_name("r_c_btn");
     $back_btn->create();
 } else {
     $login_mess = new Text_Field("You should be logged in to display your cart.", "login_mess");
