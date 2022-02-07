@@ -8,6 +8,8 @@
 
 <h1>CRUD main page</h1>
 
+<div id="main">
+
 <?php
 require_once("code_base.php");
 
@@ -45,5 +47,6 @@ $go_main_page_btn->set_class_name("r_c_btn");
 $go_main_page_btn->create();
 ?>
 
+</div>
 </body>
 </html>
