@@ -147,6 +147,15 @@ div.comb_pagination form {
     display: inline-block;
 }
 
+div.amount_due {
+    text-align: center;
+}
+
+div.amount_due p {
+    color: goldenrod;
+    font-size: 30px;
+}
+
 div.err_mess {
     text-align: center;
 }

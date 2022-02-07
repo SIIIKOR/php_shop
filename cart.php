@@ -51,7 +51,7 @@ if ($logger->is_logged()) {
     $cart_contents_data = $shop->get_cart_contents(FALSE, $page_num, $records_per_page);
     $total_row_count = $shop->get_cart_contents(TRUE);
     if (is_array($cart_contents_data) and $total_row_count>0) {
-        $amount_due = new Text_Field("Amount due {$shop->get_amount_due()[0]["sum"]} zł", "amount due");
+        $amount_due = new Text_Field("Amount due {$shop->get_amount_due()[0]["sum"]} zł", "amount_due");
         $amount_due->create();
 
         $cart_contents = new Table($cart_contents_data);

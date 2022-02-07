@@ -38,7 +38,7 @@ if ($logger->is_logged()) {
 
     $order_contents = $shop->get_order_product_info($order_id, FALSE, $page_num, $records_per_page);
     if (!empty($order_contents)) {
-        $amount_due = new Text_Field("Amount due {$shop->get_amount_due($order_id)[0]["sum"]} zł", "amount due");
+        $amount_due = new Text_Field("Amount due {$shop->get_amount_due($order_id)[0]["sum"]} zł", "amount_due");
         $amount_due->create();
 
         $table = new Table($order_contents);
