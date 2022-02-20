@@ -18,3 +18,5 @@ Features:
 - Sustaining login status using cookie containing mail and user specific token
 - Simple sql-injection defences
 - All CRUD functionality: Displaying all tables, adding new records, updating records, deleteing records
+
+![alt text]()
