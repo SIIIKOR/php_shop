@@ -19,6 +19,8 @@ Features:
 - Simple sql-injection defences
 - All CRUD functionality: Displaying all tables, adding new records, updating records, deleteing records
 
+![alt text](front_page.png)
+
 Database structure
 
 ![alt text](shop-diagram.png)
