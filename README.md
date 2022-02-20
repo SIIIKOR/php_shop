@@ -5,9 +5,9 @@ Simple shop app with crud interface and postgresql database behind.
 App wrtiten in pure OOP PHP without any frameworks.
 Uses simple css.
 
-link: https://students.mimuw.edu.pl/~ms419409/
+# link: https://students.mimuw.edu.pl/~ms419409/
 
-Features:
+### Features:
 - Register new user.
 - Login as user|admin
 - Display shop, cart, orders contents
