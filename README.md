@@ -19,4 +19,4 @@ Features:
 - Simple sql-injection defences
 - All CRUD functionality: Displaying all tables, adding new records, updating records, deleteing records
 
-![alt text]()
+![alt text](shop-diagram.png)
