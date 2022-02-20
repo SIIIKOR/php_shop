@@ -11,6 +11,7 @@ Uses simple css.
 - Register new user.
 - Login as user|admin
 - Display shop, cart, orders contents
+- Simple filtering by category
 - Add products to cart
 - Add products from cart to orders
 - Password hashing in database
