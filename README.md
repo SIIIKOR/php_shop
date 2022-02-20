@@ -21,6 +21,6 @@ Features:
 
 ![alt text](front_page.png)
 
-Database structure
+# Database structure
 
 ![alt text](shop-diagram.png)
